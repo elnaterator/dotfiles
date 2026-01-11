@@ -83,6 +83,16 @@ check_for_existing_files() {
     "$HOME/.config/mise/settings.toml"
   )
 
+  # Add individual skills to backup check
+  for skill_dir in "$DOTFILES_DIR/skills"/*/ ; do
+    if [ -d "$skill_dir" ]; then
+      skill_name=$(basename "$skill_dir")
+      if [ -f "$skill_dir/SKILL.md" ]; then
+        files_to_check+=("$HOME/.claude/skills/$skill_name")
+      fi
+    fi
+  done
+
   local existing_files=()
   for file in "${files_to_check[@]}"; do
     if [ -e "$file" ] && [ ! -L "$file" ]; then
@@ -163,7 +173,7 @@ if ! confirm "This will symlink dotfiles to your home directory. Continue?"; the
 fi
 
 # Check for existing files and ask about backup
-check_for_existing_files
+check_for_existing_files || true
 
 # =============================================================================
 # Create necessary directories
@@ -173,6 +183,9 @@ print_header "Creating necessary directories"
 
 mkdir -p "$HOME/.config/mise"
 print_success "Created ~/.config/mise"
+
+mkdir -p "$HOME/.claude"
+print_success "Created ~/.claude"
 
 # =============================================================================
 # Shell Configuration Files
@@ -201,6 +214,64 @@ print_header "Setting up mise configuration"
 
 create_symlink "$DOTFILES_DIR/mise/config.toml" "$HOME/.config/mise/config.toml"
 create_symlink "$DOTFILES_DIR/mise/settings.toml" "$HOME/.config/mise/settings.toml"
+
+# =============================================================================
+# Claude Code Skills
+# =============================================================================
+
+print_header "Setting up Claude Code skills"
+
+# Create skills directory if it doesn't exist
+mkdir -p "$HOME/.claude/skills"
+
+# Function to check if skill is enabled in config
+is_skill_enabled() {
+  local skill_name=$1
+  local config_file="$DOTFILES_DIR/skills/config.toml"
+  local local_config="$DOTFILES_DIR/skills/config.local.toml"
+
+  # Check local config first (machine-specific overrides)
+  if [ -f "$local_config" ]; then
+    if grep -q "^\[$skill_name\]" "$local_config"; then
+      if grep -A 1 "^\[$skill_name\]" "$local_config" | grep -q "enabled = true"; then
+        return 0
+      else
+        return 1
+      fi
+    fi
+  fi
+
+  # Fall back to main config
+  if [ -f "$config_file" ]; then
+    if grep -A 1 "^\[$skill_name\]" "$config_file" | grep -q "enabled = true"; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+
+  # If no config exists, enable all skills by default
+  return 0
+}
+
+# Symlink individual skills from the dotfiles repo
+for skill_dir in "$DOTFILES_DIR/skills"/*/ ; do
+  if [ -d "$skill_dir" ]; then
+    skill_name=$(basename "$skill_dir")
+    # Only process directories with a valid SKILL.md file
+    if [ -f "$skill_dir/SKILL.md" ]; then
+      if is_skill_enabled "$skill_name"; then
+        create_symlink "$skill_dir" "$HOME/.claude/skills/$skill_name"
+      else
+        # Remove symlink if skill is disabled
+        if [ -L "$HOME/.claude/skills/$skill_name" ]; then
+          rm "$HOME/.claude/skills/$skill_name"
+          print_warning "Removed disabled skill: $skill_name"
+        fi
+      fi
+    fi
+  fi
+done
 
 # =============================================================================
 # PATH Setup

@@ -1,0 +1,7 @@
+# Skills Configuration
+# Enable or disable individual skills by setting enabled = true/false
+# When a skill is disabled, setup.sh will remove its symlink from ~/.claude/skills/
+
+[git-helper]
+enabled = true
+description = "Git workflow assistant for commits, branches, and PRs"

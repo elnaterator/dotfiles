@@ -1,6 +1,9 @@
 # Machine-specific configuration files
 *.local
 
+# Machine-specific skills configuration
+skills/config.local.toml
+
 # Backup directories created by setup script
 .backups/
 

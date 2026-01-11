@@ -1,0 +1,9 @@
+# Machine-specific Skills Configuration Override
+# Copy this file to config.local.toml to override skill settings on this machine
+# config.local.toml is gitignored and stays on each machine
+
+# Example: Disable git-helper on this machine only
+# [git-helper]
+# enabled = false
+
+# Machine-specific overrides take precedence over config.toml
