@@ -93,6 +93,12 @@ check_for_existing_files() {
     fi
   done
 
+  # Add individual agents to backup check (recursively find all .md files)
+  while IFS= read -r -d '' agent_file; do
+    agent_name=$(basename "$agent_file")
+    files_to_check+=("$HOME/.claude/agents/$agent_name")
+  done < <(find "$DOTFILES_DIR/agents" -name "*.md" -not -name "README.md" -type f -print0 2>/dev/null)
+
   local existing_files=()
   for file in "${files_to_check[@]}"; do
     if [ -e "$file" ] && [ ! -L "$file" ]; then
@@ -272,6 +278,22 @@ for skill_dir in "$DOTFILES_DIR/skills"/*/ ; do
     fi
   fi
 done
+
+# =============================================================================
+# Claude Code Agents (Subagents)
+# =============================================================================
+
+print_header "Setting up Claude Code subagents"
+
+# Create agents directory if it doesn't exist
+mkdir -p "$HOME/.claude/agents"
+
+# Symlink individual agent markdown files from the dotfiles repo
+# Find all .md files in agents/ directory (excluding README.md) recursively
+while IFS= read -r -d '' agent_file; do
+  agent_filename=$(basename "$agent_file")
+  create_symlink "$agent_file" "$HOME/.claude/agents/$agent_filename"
+done < <(find "$DOTFILES_DIR/agents" -name "*.md" -not -name "README.md" -type f -print0 2>/dev/null)
 
 # =============================================================================
 # PATH Setup

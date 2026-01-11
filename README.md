@@ -32,6 +32,7 @@ dotfiles/
 │   ├── config.toml   # Global mise configuration
 │   └── settings.toml # mise settings
 ├── skills/           # AI Agent Skills
+├── agents/           # AI Agents
 ├── setup.sh          # Main setup script
 └── README.md         # This file
 ```
@@ -139,7 +140,20 @@ Since configuration files are symlinked, changes are automatically reflected.
 
 ### Skills Directory
 
-The `skills/` directory is for AI Agent Skills. See `skills/README.md` for details.
+The `skills/` directory is for AI Agent Skills. See [skills/README.md](skills/README.md) for details.
+
+Skills are reusable, specialized capabilities that can be invoked by AI agents to perform specific tasks.
+
+### Agents Directory
+
+The `agents/` directory is for AI Agents. See [agents/README.md](agents/README.md) for details.
+
+Agents are autonomous AI systems that can perform complex, multi-step tasks and maintain context across workflows.
+
+Both skills and agents:
+- Are symlinked to `~/.claude/skills/` and `~/.claude/agents/` respectively
+- Can be enabled/disabled via `config.toml` in their respective directories
+- Support machine-specific overrides via `config.local.toml` (gitignored)
 
 ## Dependencies
 
