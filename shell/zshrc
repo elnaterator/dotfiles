@@ -1,0 +1,105 @@
+# =============================================================================
+# ZSH Configuration
+# =============================================================================
+
+# =============================================================================
+# Oh My Zsh Configuration
+# =============================================================================
+# Enable Powerlevel10k instant prompt. Should stay close to the top.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# Path to Oh My Zsh installation
+export ZSH="$HOME/.oh-my-zsh"
+
+# Plugins to load
+plugins=(git)
+
+# Source Oh My Zsh
+if [ -f "$ZSH/oh-my-zsh.sh" ]; then
+  source $ZSH/oh-my-zsh.sh
+fi
+
+# Load Powerlevel10k theme
+if [ -f "/opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme" ]; then
+  source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
+fi
+
+# Load Powerlevel10k config
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# =============================================================================
+# PATH Configuration
+# =============================================================================
+# Add dotfiles bin directory to PATH
+export PATH="$HOME/.dotfiles/bin:$PATH"
+
+# Standard paths
+export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+
+# =============================================================================
+# History Configuration
+# =============================================================================
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt APPEND_HISTORY           # Append to history file
+setopt SHARE_HISTORY            # Share history between sessions
+setopt HIST_IGNORE_DUPS         # Ignore duplicate commands
+setopt HIST_IGNORE_SPACE        # Ignore commands starting with space
+setopt HIST_REDUCE_BLANKS       # Remove unnecessary blanks
+
+# =============================================================================
+# Completion
+# =============================================================================
+# Docker CLI completions
+fpath=(~/.docker/completions $fpath)
+
+autoload -Uz compinit
+compinit
+
+# Case-insensitive completion
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# =============================================================================
+# Aliases
+# =============================================================================
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# Git aliases
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gl='git log --oneline --graph --decorate'
+alias gd='git diff'
+
+# =============================================================================
+# Environment Variables
+# =============================================================================
+export EDITOR=vim
+export VISUAL=vim
+
+# Disable pager for AWS CLI by default (can be overridden in .zshrc.local)
+export AWS_PAGER=""
+
+# =============================================================================
+# Mise (mise-en-place) - Development tool version manager
+# =============================================================================
+# Use shims instead of dynamic activate for compatibility with AI coding assistants
+# This is more reliable for non-interactive shells like those used by Claude Code
+if [ -d "$HOME/.local/share/mise/shims" ]; then
+  export PATH="$HOME/.local/share/mise/shims:$PATH"
+fi
+
+# =============================================================================
+# Load machine-specific configuration
+# =============================================================================
+# Create ~/.zshrc.local for machine-specific customizations
+# (work-specific aliases, credentials, paths, etc.)
+[ -f ~/.zshrc.local ] && source ~/.zshrc.local

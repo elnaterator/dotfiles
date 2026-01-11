@@ -1,0 +1,50 @@
+# =============================================================================
+# Mise Global Configuration
+# =============================================================================
+#
+# This file configures mise (mise-en-place) globally across all projects.
+# It will be symlinked to ~/.config/mise/config.toml
+#
+# Documentation: https://mise.jdx.dev/configuration.html
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Global Tool Versions
+# -----------------------------------------------------------------------------
+# Define tool versions to use globally (can be overridden per-project)
+[tools]
+go = "latest"
+golangci-lint = "latest"
+node = "latest"
+pipx = "latest"
+poetry = "latest"
+python = "3.13"
+uv = "latest"
+
+# -----------------------------------------------------------------------------
+# Environment Variables
+# -----------------------------------------------------------------------------
+[env]
+# Global environment variables
+# Example:
+# MISE_EXPERIMENTAL = "1"
+
+# -----------------------------------------------------------------------------
+# Settings
+# -----------------------------------------------------------------------------
+# Settings are now in settings.toml (see mise/settings.toml)
+
+# -----------------------------------------------------------------------------
+# Aliases
+# -----------------------------------------------------------------------------
+# Create aliases for tools or versions
+# [aliases]
+# node = { "lts" = "20" }
+# python = { "3" = "3.12" }
+
+# -----------------------------------------------------------------------------
+# Plugins
+# -----------------------------------------------------------------------------
+# Configure plugin behavior
+# [plugins]
+# Example plugin settings

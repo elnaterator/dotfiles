@@ -1,0 +1,77 @@
+# =============================================================================
+# Machine-Specific ZSH Configuration
+# =============================================================================
+#
+# This file serves as a template for ~/.zshrc.local
+# Copy this to ~/.zshrc.local and customize for each machine
+#
+# This file is loaded by ~/.zshrc and is gitignored, so you can safely
+# add machine-specific configuration without committing it to the repo.
+#
+# Usage:
+#   cp ~/.dotfiles/shell/zshrc.local.example ~/.zshrc.local
+#   vim ~/.zshrc.local
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Machine-Specific Paths
+# -----------------------------------------------------------------------------
+# Example: Add editor integration to PATH
+# export PATH="/Users/username/.codeium/windsurf/bin:$PATH"
+
+# Example: Add OpenSSL from Homebrew (needed for vault script)
+# export PATH="$(brew --prefix openssl)/bin:$PATH"
+
+# Example: Add work-specific tools to PATH
+# export PATH="/opt/work-tools/bin:$PATH"
+
+# -----------------------------------------------------------------------------
+# AI Assistant Shell Optimization
+# -----------------------------------------------------------------------------
+# Example: Conditional loading for AI assistant sessions (Cline, Claude Code)
+# if [[ "$CLINE_ACTIVE" != "true" || "$CLAUDECODE" == "1" ]]; then
+#     # Normal interactive session customizations
+# fi
+
+# -----------------------------------------------------------------------------
+# Work-Specific Aliases
+# -----------------------------------------------------------------------------
+# Example: SSH shortcuts for work servers
+# alias ssh-dev='ssh user@dev.company.com'
+# alias ssh-prod='ssh user@prod.company.com'
+
+# Example: Project shortcuts
+# alias work='cd ~/workspace/work-project'
+# alias personal='cd ~/workspace/personal-project'
+
+# -----------------------------------------------------------------------------
+# Credentials and API Keys
+# -----------------------------------------------------------------------------
+# Example: Set environment variables for credentials
+# export GITHUB_TOKEN="your-token-here"
+# export WORK_API_KEY="your-key-here"
+# export NPM_TOKEN="your-npm-token"
+
+# -----------------------------------------------------------------------------
+# Custom Functions
+# -----------------------------------------------------------------------------
+# Example: Work-specific helper functions
+# work-vpn() {
+#   echo "Connecting to work VPN..."
+#   # Your VPN connection logic
+# }
+
+# -----------------------------------------------------------------------------
+# Tool Overrides
+# -----------------------------------------------------------------------------
+# Example: Override global settings for this machine
+# export AWS_PAGER="less"  # Override the default empty pager
+# export EDITOR="code --wait"  # Use VS Code on this machine
+
+# -----------------------------------------------------------------------------
+# Git Configuration Notes
+# -----------------------------------------------------------------------------
+# Global git config is in ~/.gitconfig
+# For per-project email overrides (work vs personal):
+#   cd personal-project
+#   git config user.email "personal@email.com"
