@@ -249,14 +249,16 @@ is_skill_enabled() {
 
   # Fall back to main config
   if [ -f "$config_file" ]; then
-    if grep -A 1 "^\[$skill_name\]" "$config_file" | grep -q "enabled = true"; then
-      return 0
-    else
-      return 1
+    if grep -q "^\[$skill_name\]" "$config_file"; then
+      if grep -A 1 "^\[$skill_name\]" "$config_file" | grep -q "enabled = true"; then
+        return 0
+      else
+        return 1
+      fi
     fi
   fi
 
-  # If no config exists, enable all skills by default
+  # If skill not in any config, enable by default
   return 0
 }
 
@@ -292,16 +294,20 @@ if [ -f "$local_config" ]; then
   # Extract external_skills.paths array from TOML (supports paths with ~ and absolute paths)
   # This reads lines between [external_skills] and next section or EOF, extracts quoted paths
   external_paths=$(awk '
-    /^\[external_skills\]/,/^\[/ {
-      if ($0 ~ /"[^"]+",?/) {
-        match($0, /"([^"]+)"/, arr)
-        print arr[1]
+    /^\[external_skills\]/ { in_section=1; next }
+    /^\[[^]]*\]$/ && in_section { in_section=0 }
+    in_section && /"/ {
+      start = index($0, "\"")
+      if (start > 0) {
+        rest = substr($0, start + 1)
+        end = index(rest, "\"")
+        if (end > 0) print substr(rest, 1, end - 1)
       }
     }
   ' "$local_config")
 
   if [ -n "$external_paths" ]; then
-    print_status "Processing external skills..."
+    print_header "Processing external skills..."
     while IFS= read -r skill_path; do
       if [ -n "$skill_path" ]; then
         # Expand ~ to home directory
@@ -345,14 +351,16 @@ is_agent_enabled() {
 
   # Fall back to main config
   if [ -f "$config_file" ]; then
-    if grep -A 1 "^\[$agent_name\]" "$config_file" | grep -q "enabled = true"; then
-      return 0
-    else
-      return 1
+    if grep -q "^\[$agent_name\]" "$config_file"; then
+      if grep -A 1 "^\[$agent_name\]" "$config_file" | grep -q "enabled = true"; then
+        return 0
+      else
+        return 1
+      fi
     fi
   fi
 
-  # If no config exists, enable all agents by default
+  # If agent not in any config, enable by default
   return 0
 }
 
@@ -384,16 +392,20 @@ local_config="$DOTFILES_DIR/agents/config.local.toml"
 if [ -f "$local_config" ]; then
   # Extract external_agents.paths array from TOML
   external_paths=$(awk '
-    /^\[external_agents\]/,/^\[/ {
-      if ($0 ~ /"[^"]+",?/) {
-        match($0, /"([^"]+)"/, arr)
-        print arr[1]
+    /^\[external_agents\]/ { in_section=1; next }
+    /^\[[^]]*\]$/ && in_section { in_section=0 }
+    in_section && /"/ {
+      start = index($0, "\"")
+      if (start > 0) {
+        rest = substr($0, start + 1)
+        end = index(rest, "\"")
+        if (end > 0) print substr(rest, 1, end - 1)
       }
     }
   ' "$local_config")
 
   if [ -n "$external_paths" ]; then
-    print_status "Processing external agents..."
+    print_header "Processing external agents..."
     while IFS= read -r agent_path; do
       if [ -n "$agent_path" ]; then
         # Expand ~ to home directory
