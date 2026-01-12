@@ -1,0 +1,15 @@
+# Agents Configuration
+# Enable or disable individual agents by setting enabled = true/false
+# When an agent is disabled, setup.sh will remove its symlink from ~/.claude/agents/
+
+[product-owner]
+enabled = true
+
+[architecture-and-design-expert]
+enabled = true
+
+[developer]
+enabled = true
+
+[code-reviewer]
+enabled = true

@@ -1,0 +1,20 @@
+# Machine-specific Agents Configuration Override
+# Copy this file to config.local.toml to override agent settings on this machine
+# config.local.toml is gitignored and stays on each machine
+
+# Example: Disable code-reviewer on this machine only
+# [code-reviewer]
+# enabled = false
+
+# Machine-specific overrides take precedence over config.toml
+
+# External Agents Paths
+# Add paths to agent files outside this dotfiles repo
+# These will be symlinked to ~/.claude/agents/ alongside repo agents
+# Paths can be absolute or use ~ for home directory
+# Agents should be .md files
+[external_agents]
+paths = [
+  # "~/projects/my-custom-agents/deployment-expert.md",
+  # "/opt/shared-agents/security-auditor.md",
+]

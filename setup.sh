@@ -260,24 +260,62 @@ is_skill_enabled() {
   return 0
 }
 
-# Symlink individual skills from the dotfiles repo
-for skill_dir in "$DOTFILES_DIR/skills"/*/ ; do
-  if [ -d "$skill_dir" ]; then
-    skill_name=$(basename "$skill_dir")
-    # Only process directories with a valid SKILL.md file
-    if [ -f "$skill_dir/SKILL.md" ]; then
-      if is_skill_enabled "$skill_name"; then
-        create_symlink "$skill_dir" "$HOME/.claude/skills/$skill_name"
-      else
-        # Remove symlink if skill is disabled
-        if [ -L "$HOME/.claude/skills/$skill_name" ]; then
-          rm "$HOME/.claude/skills/$skill_name"
-          print_warning "Removed disabled skill: $skill_name"
-        fi
+# Function to symlink a skill directory
+symlink_skill() {
+  local skill_dir=$1
+  local skill_name=$(basename "$skill_dir")
+
+  # Only process directories with a valid SKILL.md file
+  if [ -f "$skill_dir/SKILL.md" ]; then
+    if is_skill_enabled "$skill_name"; then
+      create_symlink "$skill_dir" "$HOME/.claude/skills/$skill_name"
+    else
+      # Remove symlink if skill is disabled
+      if [ -L "$HOME/.claude/skills/$skill_name" ]; then
+        rm "$HOME/.claude/skills/$skill_name"
+        print_warning "Removed disabled skill: $skill_name"
       fi
     fi
   fi
+}
+
+# Symlink individual skills from the dotfiles repo
+for skill_dir in "$DOTFILES_DIR/skills"/*/ ; do
+  if [ -d "$skill_dir" ]; then
+    symlink_skill "$skill_dir"
+  fi
 done
+
+# Symlink external skills from config.local.toml
+local_config="$DOTFILES_DIR/skills/config.local.toml"
+if [ -f "$local_config" ]; then
+  # Extract external_skills.paths array from TOML (supports paths with ~ and absolute paths)
+  # This reads lines between [external_skills] and next section or EOF, extracts quoted paths
+  external_paths=$(awk '
+    /^\[external_skills\]/,/^\[/ {
+      if ($0 ~ /"[^"]+",?/) {
+        match($0, /"([^"]+)"/, arr)
+        print arr[1]
+      }
+    }
+  ' "$local_config")
+
+  if [ -n "$external_paths" ]; then
+    print_status "Processing external skills..."
+    while IFS= read -r skill_path; do
+      if [ -n "$skill_path" ]; then
+        # Expand ~ to home directory
+        expanded_path="${skill_path/#\~/$HOME}"
+
+        if [ -d "$expanded_path" ]; then
+          symlink_skill "$expanded_path"
+        else
+          print_warning "External skill path not found: $skill_path"
+        fi
+      fi
+    done <<< "$external_paths"
+  fi
+fi
 
 # =============================================================================
 # Claude Code Agents (Subagents)
@@ -288,12 +326,88 @@ print_header "Setting up Claude Code subagents"
 # Create agents directory if it doesn't exist
 mkdir -p "$HOME/.claude/agents"
 
+# Function to check if agent is enabled in config
+is_agent_enabled() {
+  local agent_name=$1
+  local config_file="$DOTFILES_DIR/agents/config.toml"
+  local local_config="$DOTFILES_DIR/agents/config.local.toml"
+
+  # Check local config first (machine-specific overrides)
+  if [ -f "$local_config" ]; then
+    if grep -q "^\[$agent_name\]" "$local_config"; then
+      if grep -A 1 "^\[$agent_name\]" "$local_config" | grep -q "enabled = true"; then
+        return 0
+      else
+        return 1
+      fi
+    fi
+  fi
+
+  # Fall back to main config
+  if [ -f "$config_file" ]; then
+    if grep -A 1 "^\[$agent_name\]" "$config_file" | grep -q "enabled = true"; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+
+  # If no config exists, enable all agents by default
+  return 0
+}
+
+# Function to symlink an agent file
+symlink_agent() {
+  local agent_file=$1
+  local agent_filename=$(basename "$agent_file")
+  local agent_name="${agent_filename%.md}"
+
+  if is_agent_enabled "$agent_name"; then
+    create_symlink "$agent_file" "$HOME/.claude/agents/$agent_filename"
+  else
+    # Remove symlink if agent is disabled
+    if [ -L "$HOME/.claude/agents/$agent_filename" ]; then
+      rm "$HOME/.claude/agents/$agent_filename"
+      print_warning "Removed disabled agent: $agent_name"
+    fi
+  fi
+}
+
 # Symlink individual agent markdown files from the dotfiles repo
 # Find all .md files in agents/ directory (excluding README.md) recursively
 while IFS= read -r -d '' agent_file; do
-  agent_filename=$(basename "$agent_file")
-  create_symlink "$agent_file" "$HOME/.claude/agents/$agent_filename"
+  symlink_agent "$agent_file"
 done < <(find "$DOTFILES_DIR/agents" -name "*.md" -not -name "README.md" -type f -print0 2>/dev/null)
+
+# Symlink external agents from config.local.toml
+local_config="$DOTFILES_DIR/agents/config.local.toml"
+if [ -f "$local_config" ]; then
+  # Extract external_agents.paths array from TOML
+  external_paths=$(awk '
+    /^\[external_agents\]/,/^\[/ {
+      if ($0 ~ /"[^"]+",?/) {
+        match($0, /"([^"]+)"/, arr)
+        print arr[1]
+      }
+    }
+  ' "$local_config")
+
+  if [ -n "$external_paths" ]; then
+    print_status "Processing external agents..."
+    while IFS= read -r agent_path; do
+      if [ -n "$agent_path" ]; then
+        # Expand ~ to home directory
+        expanded_path="${agent_path/#\~/$HOME}"
+
+        if [ -f "$expanded_path" ] && [[ "$expanded_path" == *.md ]]; then
+          symlink_agent "$expanded_path"
+        else
+          print_warning "External agent path not found or not a .md file: $agent_path"
+        fi
+      fi
+    done <<< "$external_paths"
+  fi
+fi
 
 # =============================================================================
 # PATH Setup

@@ -3,6 +3,7 @@ name: developer
 description: Implements stories, writes code and tests, updates implementation status
 tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite
 model: sonnet
+skills: git-helper, webapp-testing, mcp-builder, skill-creator, xlsx
 ---
 
 # Developer Agent

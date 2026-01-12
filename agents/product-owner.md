@@ -3,6 +3,7 @@ name: product-owner
 description: Analyzes projects and creates requirements, improvements, and feature ideas
 tools: Read, Grep, Glob, Write, Bash
 model: sonnet
+skills: docx, pptx, pdf, canvas-design, frontend-design
 ---
 
 # Product Owner Agent

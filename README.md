@@ -154,6 +154,7 @@ Both skills and agents:
 - Are symlinked to `~/.claude/skills/` and `~/.claude/agents/` respectively
 - Can be enabled/disabled via `config.toml` in their respective directories
 - Support machine-specific overrides via `config.local.toml` (gitignored)
+- Support external paths in `config.local.toml` to include resources from outside this repo
 
 ## Dependencies
 

@@ -7,3 +7,13 @@
 # enabled = false
 
 # Machine-specific overrides take precedence over config.toml
+
+# External Skills Paths
+# Add paths to skill directories outside this dotfiles repo
+# These will be symlinked to ~/.claude/skills/ alongside repo skills
+# Paths can be absolute or use ~ for home directory
+[external_skills]
+paths = [
+  # "~/projects/my-custom-skills/work-helper",
+  # "/opt/shared-skills/deploy-assistant",
+]

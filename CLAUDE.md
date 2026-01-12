@@ -234,6 +234,44 @@ Follow existing patterns:
 
 The `skills/` directory is for AI Agent Skills. See `skills/README.md` for structure and guidelines.
 
+**Configuration:**
+- `skills/config.toml`: Main config for enabling/disabling repo skills
+- `skills/config.local.toml`: Machine-specific overrides (gitignored)
+
+**External Skills:**
+To include skills from outside this repo, add paths to `skills/config.local.toml`:
+
+```toml
+[external_skills]
+paths = [
+  "~/projects/my-custom-skills/work-helper",
+  "/opt/shared-skills/deploy-assistant",
+]
+```
+
+The setup script will symlink external skills to `~/.claude/skills/` alongside repo skills. External skills must have a `SKILL.md` file to be recognized.
+
+### Agents Directory
+
+The `agents/` directory contains Claude Code subagents. See `agents/README.md` for structure and guidelines.
+
+**Configuration:**
+- `agents/config.toml`: Main config for enabling/disabling repo agents
+- `agents/config.local.toml`: Machine-specific overrides (gitignored)
+
+**External Agents:**
+To include agents from outside this repo, add paths to `agents/config.local.toml`:
+
+```toml
+[external_agents]
+paths = [
+  "~/projects/my-custom-agents/deployment-expert.md",
+  "/opt/shared-agents/security-auditor.md",
+]
+```
+
+The setup script will symlink external agents to `~/.claude/agents/` alongside repo agents. External agents must be `.md` files.
+
 ## Dependencies
 
 Common dependencies assumed to be available:

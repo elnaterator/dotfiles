@@ -3,6 +3,7 @@ name: architecture-and-design-expert
 description: Creates design documents and implementation plans from requirements
 tools: Read, Grep, Glob, Write, Bash
 model: sonnet
+skills: docx, pptx, pdf, canvas-design, mcp-builder
 ---
 
 # Architecture and Design Expert Agent

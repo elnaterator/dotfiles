@@ -3,6 +3,7 @@ name: code-reviewer
 description: Reviews code for quality, standards compliance, and acceptance criteria
 tools: Read, Grep, Glob, Bash
 model: sonnet
+skills: webapp-testing, git-helper, pdf
 ---
 
 # Code Reviewer Agent
