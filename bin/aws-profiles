@@ -1,0 +1,27 @@
+#!/bin/bash
+# Extract profile names, cred profiles, and AWS role names from AWS config file
+awk '
+BEGIN {
+    printf "%-30s %-30s %s\n", "OKTA_PROFILE", "AWS_PROFILE", "AWS_ROLENAME"
+    printf "%-30s %-30s %s\n", "------------------------------", "------------------------------", "------------------------------"
+}
+/^\[.*\]$/ {
+    if (profile && rolename && cred_profile) {
+        printf "%-30s %-30s %s\n", profile, cred_profile, rolename
+    }
+    profile = substr($0, 2, length($0)-2)
+    cred_profile = ""
+    rolename = ""
+}
+/^aws_rolename/ {
+    rolename = substr($0, index($0, "=")+2)
+}
+/^cred_profile/ {
+    cred_profile = substr($0, index($0, "=")+2)
+}
+END {
+    if (profile && rolename && cred_profile) {
+        printf "%-30s %-30s %s\n", profile, cred_profile, rolename
+    }
+}
+' ~/.okta_aws_login_config

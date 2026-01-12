@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+import sys
+from ipaddress import ip_network
+
+
+def display_cidr_info(cidr):
+    network = ip_network(cidr)
+    print(f"Network: {network.network_address}")
+    print(f"Netmask: {network.netmask}")
+    print(f"Broadcast: {network.broadcast_address}")
+    print(f"Number of IPs: {network.num_addresses}")
+    print(f"IP Range: {network.network_address} - {network.broadcast_address}")
+
+
+# Test with a CIDR
+if __name__ == "__main__":
+    cidr = sys.argv[1]
+    display_cidr_info(cidr)

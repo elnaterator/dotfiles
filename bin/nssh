@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#
+# Run a local script on a remote server
+#
+
+# get all args
+args=("$@")
+
+# last arg should be path to a bash script
+script_path=${args[${#args[@]}-1]}
+
+# check if script_path exists and read contents to a variable
+if [[ -f "$script_path" ]]; then
+    script_contents=$(<"$script_path")
+else
+    echo "invalid script: $script_path"
+    exit 1
+fi
+
+# remove last argument, which is the script path
+unset args[${#args[@]}-1]
+
+# set ssh args
+ssh ${args[@]} /bin/bash <<EOF
+$script_contents
+EOF

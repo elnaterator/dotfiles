@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+import sys
+from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
+from netaddr import spanning_cidr
+
+
+def main(input_list, action):
+
+    if action == "cidrs":
+        print(build_cidrs(input_list, 16))
+    else:
+        print("Invalid action")
+        sys.exit(1)
+
+
+def spanning_cidr(addrs):
+    print(spanning_cidr([startip, endip]))
+
+
+def build_cidrs(addrs, mask_size=16):
+    out = []
+    while True:
+        if len(addrs) == 0:
+            break
+        found = False
+        for index in out:
+            if IPv4Network(addrs[0], 32).subnet_of(
+                index.supernet(new_prefix=mask_size)
+            ):
+                cur = index
+                while True:
+                    if cur.supernet_of(IPv4Network(addrs[0], 32)):
+                        break
+                    else:
+                        cur = cur.supernet()
+                out[out.index(index)] = cur
+                addrs.pop(0)
+                found = True
+                break
+        if not found:
+            out.append(IPv4Network(addrs.pop(0), 32).supernet())
+    return out
+
+
+if __name__ == "__main__":
+
+    input_list = open(sys.argv[1], "r").read().splitlines()
+    action = sys.argv[2]
+
+    print(input_list)
+
+    if not action:
+        print("No action specified")
+        sys.exit(1)
+
+    main(input_list, action)
