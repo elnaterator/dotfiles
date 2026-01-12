@@ -14,9 +14,8 @@ cd ~/workspace/dotfiles
 
 The setup script will:
 - Create symlinks from your home directory to configuration files in this repo
-- Back up any existing configuration files to `~/.dotfiles_backup/`
-- Set up necessary directories (like `~/.config/mise/`)
-- Create a `~/.zshrc.local` template for machine-specific customizations
+- Back up any existing configuration files to `.backups/[timestamp]/`
+- Create `~/.zshrc.local` from template for machine-specific shell settings
 - Add the `bin/` directory to your PATH
 
 ## Repository Structure
@@ -28,9 +27,6 @@ dotfiles/
 │   ├── zshrc         # Main zsh configuration
 │   ├── bashrc        # Main bash configuration
 │   └── bash_profile  # Bash profile
-├── mise/             # mise-en-place (development tool version manager)
-│   ├── config.toml   # Global mise configuration
-│   └── settings.toml # mise settings
 ├── skills/           # AI Agent Skills
 ├── agents/           # AI Agents
 ├── setup.sh          # Main setup script
@@ -61,15 +57,6 @@ This file is gitignored and won't be committed. Use it for:
 - API keys and credentials
 - Environment variable overrides
 
-### Mise
-
-Mise configurations are in the `mise/` directory and will be symlinked to `~/.config/mise/`.
-
-Edit `mise/config.toml` to:
-- Set global tool versions (node, python, go, etc.)
-- Configure environment variables
-- Set up tool aliases
-
 ### Utility Scripts
 
 All scripts in `bin/` will be available in your PATH after setup. Key utilities:
@@ -96,19 +83,12 @@ If you prefer not to use the automated setup script:
    ln -s ~/.dotfiles/shell/bash_profile ~/.bash_profile
    ```
 
-2. Symlink mise configs:
-   ```bash
-   mkdir -p ~/.config/mise
-   ln -s ~/.dotfiles/mise/config.toml ~/.config/mise/config.toml
-   ln -s ~/.dotfiles/mise/settings.toml ~/.config/mise/settings.toml
-   ```
-
-3. Add bin to PATH (add to your shell config):
+2. Add bin to PATH (add to your shell config):
    ```bash
    export PATH="$HOME/.dotfiles/bin:$PATH"
    ```
 
-4. Create local config:
+3. Create local config:
    ```bash
    cp ~/.dotfiles/shell/zshrc.local.example ~/.zshrc.local
    ```
@@ -162,7 +142,6 @@ Common tools used by scripts:
 - **aws** CLI (for AWS scripts)
 - **jq** (JSON processing)
 - **openssl** 1.0.0+ (for vault script)
-- **mise** (optional, for development tool management)
 
 ## Legacy Setup Script
 

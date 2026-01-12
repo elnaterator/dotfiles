@@ -6,9 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a personal dotfiles repository containing:
 - Shell configurations (zsh, bash) with machine-specific customization support
-- Development tool configurations (mise)
 - Utility scripts for AWS operations, security, git workflows, and productivity
-- AI Agent Skills directory
+- AI Agent Skills and Agents directories
 
 The repository uses a symlink-based approach where configuration files in the repo are linked to their expected locations in the home directory.
 
@@ -21,9 +20,8 @@ The repository uses a symlink-based approach where configuration files in the re
 
 The setup script:
 - Creates symlinks from `~/.zshrc`, `~/.bashrc`, etc. to files in this repo
-- Backs up existing configs to `~/.dotfiles_backup/[timestamp]/`
-- Creates `~/.zshrc.local` from template for machine-specific settings
-- Sets up mise configuration in `~/.config/mise/`
+- Backs up existing configs to `.backups/[timestamp]/`
+- Creates `~/.zshrc.local` from template for machine-specific shell settings
 - Creates `~/.dotfiles` symlink to repository location
 
 **Running the setup script is idempotent** - safe to run multiple times.
@@ -38,10 +36,8 @@ dotfiles/
 │   ├── bashrc        # Main bash config (→ ~/.bashrc)
 │   ├── bash_profile  # Bash profile (→ ~/.bash_profile)
 │   └── zshrc.local.example  # Template for machine-specific config
-├── mise/             # mise-en-place configurations
-│   ├── config.toml   # Global mise config (→ ~/.config/mise/config.toml)
-│   └── settings.toml # mise settings (→ ~/.config/mise/settings.toml)
 ├── skills/           # AI Agent Skills
+├── agents/           # AI Agents
 ├── setup.sh          # Main setup script
 └── setup-path.sh     # Legacy PATH setup (deprecated)
 ```
@@ -224,6 +220,7 @@ Follow existing patterns:
 - Credentials or API keys
 - Machine-specific paths or hostnames
 - Work-specific configuration
+- `~/.zshrc.local` (or other `.local` files)
 
 **Instead:**
 - Add examples to `shell/zshrc.local.example`
@@ -280,7 +277,6 @@ Common dependencies assumed to be available:
 - `jq` (JSON processing)
 - `openssl` 1.0.0+ with genpkey/pkeyutl (vault)
 - `column` (table formatting)
-- `mise` (optional, for development tool management)
 - Python 3 (mutate script)
 
 ## Legacy Files

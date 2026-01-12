@@ -79,8 +79,6 @@ check_for_existing_files() {
     "$HOME/.zshrc"
     "$HOME/.bashrc"
     "$HOME/.bash_profile"
-    "$HOME/.config/mise/config.toml"
-    "$HOME/.config/mise/settings.toml"
   )
 
   # Add individual skills to backup check
@@ -187,9 +185,6 @@ check_for_existing_files || true
 
 print_header "Creating necessary directories"
 
-mkdir -p "$HOME/.config/mise"
-print_success "Created ~/.config/mise"
-
 mkdir -p "$HOME/.claude"
 print_success "Created ~/.claude"
 
@@ -211,15 +206,6 @@ if [ ! -f "$HOME/.zshrc.local" ]; then
 else
   print_success "~/.zshrc.local already exists (not overwriting)"
 fi
-
-# =============================================================================
-# Mise Configuration
-# =============================================================================
-
-print_header "Setting up mise configuration"
-
-create_symlink "$DOTFILES_DIR/mise/config.toml" "$HOME/.config/mise/config.toml"
-create_symlink "$DOTFILES_DIR/mise/settings.toml" "$HOME/.config/mise/settings.toml"
 
 # =============================================================================
 # Claude Code Skills
@@ -457,10 +443,9 @@ if [ -d "$BACKUP_DIR" ]; then
 fi
 
 echo "Next steps:"
-echo "  1. Review and customize ~/.zshrc.local for machine-specific settings"
+echo "  1. Review and customize ~/.zshrc.local for machine-specific shell settings"
 echo "  2. Restart your terminal or run: source ~/.zshrc (or ~/.bashrc)"
 echo "  3. Verify PATH includes $DOTFILES_DIR/bin"
-echo "  4. Configure mise tools in ~/.config/mise/config.toml"
 echo ""
 print_success "All done! Enjoy your dotfiles."
 echo ""
