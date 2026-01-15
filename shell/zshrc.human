@@ -1,0 +1,68 @@
+#!/bin/zsh
+
+# =============================================================================
+# Oh My Zsh Configuration
+# =============================================================================
+# Enable Powerlevel10k instant prompt. Should stay close to the top.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# Path to Oh My Zsh installation
+export ZSH="$HOME/.oh-my-zsh"
+
+# Set theme before loading Oh My Zsh
+ZSH_THEME="powerlevel10k/powerlevel10k"
+
+# Plugins to load
+plugins=(git)
+
+# Source Oh My Zsh
+if [ -f "$ZSH/oh-my-zsh.sh" ]; then
+  source $ZSH/oh-my-zsh.sh
+fi
+
+# Load Powerlevel10k config
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# =============================================================================
+# Completion
+# =============================================================================
+# Docker CLI completions
+fpath=(~/.docker/completions $fpath)
+
+# initialize autocomplete
+autoload -U +X bashcompinit && bashcompinit
+autoload -Uz compinit
+compinit -C
+
+# AWS cli autocomplete
+complete -C "$(which aws_completer)" aws
+
+# terraform autocomplete
+complete -o nospace -C /usr/local/bin/terraform terraform
+
+# Case-insensitive completion
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# =============================================================================
+# Aliases
+# =============================================================================
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# Git aliases
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gl='git log --oneline --graph --decorate'
+alias gd='git diff'
+
+# DNS lookup tools
+# https://random.ac/cess/2018/04/12/macos-dig-vs-dscacheutil-while-using-split-dns-with-viscosity-vpn-client/
+alias dnsquery='dscacheutil -q host -a name'
+dig() { echo && echo -e '\033[0;97m\033[41m Remember, this is a Mac! Use "dnsquery" instead! \033[0m' && /usr/bin/dig $@ } #macOS
