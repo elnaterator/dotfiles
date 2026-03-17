@@ -135,6 +135,14 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
+if git remote get-url origin > /dev/null 2>&1; then
+    read -r -p "Prune origin before scanning branches? (y/N): " prune_origin
+    if [[ "$prune_origin" =~ ^[Yy]$ ]]; then
+        echo "Pruning origin..." >&2
+        git remote prune origin
+    fi
+fi
+
 # Get current branch to prevent accidental deletion
 current_branch=$(git branch --show-current)
 
@@ -208,9 +216,9 @@ echo "Total: $local_count local, $remote_count remote"
 echo ""
 
 # Confirmation prompt
-read -p "Delete these branches? (yes/no): " confirmation
+read -p "Delete these branches? (y/N): " confirmation
 
-if [ "$confirmation" != "yes" ]; then
+if [[ ! "$confirmation" =~ ^[Yy]$ ]]; then
     echo "Deletion cancelled"
     exit 0
 fi
