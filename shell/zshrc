@@ -49,6 +49,41 @@ setopt HIST_IGNORE_SPACE        # Ignore commands starting with space
 setopt HIST_REDUCE_BLANKS       # Remove unnecessary blanks
 
 # =============================================================================
+<<<<<<< HEAD
+=======
+# Completion
+# =============================================================================
+# Docker CLI completions
+fpath=(~/.docker/completions $fpath)
+
+autoload -Uz compinit
+compinit
+
+# Case-insensitive completion
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+# =============================================================================
+# Aliases
+# =============================================================================
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# Git aliases
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gl='git log --oneline --graph --decorate'
+alias gd='git diff'
+
+# Other aliases
+alias claudep="claude --dangerously-skip-permissions"
+
+# =============================================================================
+>>>>>>> af17256 (Add claudep alias for claude --dangerously-skip-permissions and add a schedule function)
 # Environment Variables
 # =============================================================================
 export EDITOR=vim
@@ -72,3 +107,9 @@ fi
 # Create ~/.zshrc.local for machine-specific customizations
 # (work-specific aliases, credentials, paths, etc.)
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
+# Usage: schedule "5pm" "command to run"
+schedule() {
+    echo "cd $(pwd) && $2" | at $1
+    echo "Scheduled: '$2' at $1"
+}
