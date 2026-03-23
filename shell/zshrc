@@ -49,8 +49,6 @@ setopt HIST_IGNORE_SPACE        # Ignore commands starting with space
 setopt HIST_REDUCE_BLANKS       # Remove unnecessary blanks
 
 # =============================================================================
-<<<<<<< HEAD
-=======
 # Completion
 # =============================================================================
 # Docker CLI completions
@@ -83,7 +81,6 @@ alias gd='git diff'
 alias claudep="claude --dangerously-skip-permissions"
 
 # =============================================================================
->>>>>>> af17256 (Add claudep alias for claude --dangerously-skip-permissions and add a schedule function)
 # Environment Variables
 # =============================================================================
 export EDITOR=vim
