@@ -3,7 +3,9 @@
 # =============================================================================
 # Oh My Zsh Configuration
 # =============================================================================
-# Enable Powerlevel10k instant prompt. Should stay close to the top.
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
@@ -72,6 +74,60 @@ alias gc='git commit'
 alias gp='git push'
 alias gl='git log --oneline --graph --decorate'
 alias gd='git diff'
+
+# =============================================================================
+# Custom Functions
+# =============================================================================
+
+# Provide a no-admin fallback for launching Cursor from terminal.
+# If the official Cursor CLI is available, use it. Otherwise use macOS open.
+if ! command -v cursor >/dev/null 2>&1; then
+  cursor() {
+    local cursor_cli_system="/Applications/Cursor.app/Contents/Resources/app/bin/cursor"
+    local cursor_cli_user="$HOME/Applications/Cursor.app/Contents/Resources/app/bin/cursor"
+
+    if [[ -x "$cursor_cli_system" ]]; then
+      "$cursor_cli_system" "$@"
+      return
+    fi
+
+    if [[ -x "$cursor_cli_user" ]]; then
+      "$cursor_cli_user" "$@"
+      return
+    fi
+
+    if [[ $# -gt 0 ]]; then
+      open -a "Cursor" "$@"
+    else
+      open -a "Cursor" .
+    fi
+  }
+fi
+
+# Provide a no-admin fallback for launching VS Code from terminal.
+# If the official code CLI is available, use it. Otherwise use macOS open.
+if ! command -v code >/dev/null 2>&1; then
+  code() {
+    local vscode_cli_system="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+    local vscode_cli_user="$HOME/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+
+    if [[ -x "$vscode_cli_system" ]]; then
+      "$vscode_cli_system" "$@"
+      return
+    fi
+
+    if [[ -x "$vscode_cli_user" ]]; then
+      "$vscode_cli_user" "$@"
+      return
+    fi
+
+    if [[ $# -gt 0 ]]; then
+      open -a "Visual Studio Code" "$@"
+    else
+      open -a "Visual Studio Code" .
+    fi
+  }
+fi
 
 # DNS lookup tools
 # https://random.ac/cess/2018/04/12/macos-dig-vs-dscacheutil-while-using-split-dns-with-viscosity-vpn-client/
