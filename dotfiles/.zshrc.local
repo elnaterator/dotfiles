@@ -1,0 +1,35 @@
+#!/bin/zsh
+
+# =============================================================================
+# NateHadz ZSH Configuration
+# =============================================================================
+source ~/.dotfiles/dotfiles/.zshrc
+
+# -----------------------------------------------------------------------------
+# Add tools to PATH
+# -----------------------------------------------------------------------------
+# export PATH="$(brew --prefix openssl)/bin:$PATH"
+# export PATH="/opt/work-tools/bin:$PATH"
+
+# -----------------------------------------------------------------------------
+# Common Settings
+# -----------------------------------------------------------------------------
+# export AWS_PAGER=""  # Override default pager for AWS CLI (less)
+
+# -----------------------------------------------------------------------------
+# Custom Certificates
+# -----------------------------------------------------------------------------
+# mkdir -p ~/.certs
+# cat ~/Downloads/additional-root-ca.pem >> ~/.certs/custom-ca-bundle.pem
+
+# export CUSTOM_CA_BUNDLE="$HOME/.certs/custom-ca-bundle.pem"
+# if [[ -f "$CUSTOM_CA_BUNDLE" ]]; then
+#	export SSL_CERT_FILE="$CUSTOM_CA_BUNDLE"
+#	export REQUESTS_CA_BUNDLE="$CUSTOM_CA_BUNDLE"
+#	export CURL_CA_BUNDLE="$CUSTOM_CA_BUNDLE"
+#	export GIT_SSL_CAINFO="$CUSTOM_CA_BUNDLE"
+#	export AWS_CA_BUNDLE="$CUSTOM_CA_BUNDLE"
+#	export PIP_CERT="$CUSTOM_CA_BUNDLE"
+#	export NODE_EXTRA_CA_CERTS="$CUSTOM_CA_BUNDLE"
+#	export npm_config_cafile="$CUSTOM_CA_BUNDLE"
+# fi

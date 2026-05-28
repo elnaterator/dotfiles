@@ -5,10 +5,10 @@
 # =============================================================================
 
 # Prevent double-loading in VSCode (shell integration causes re-source)
-# if [[ -n "$_ZSHRC_LOADED" ]]; then
-#   return
-# fi
-# export _ZSHRC_LOADED=1
+if [[ -n "$_ZSHRC_LOADED" ]]; then
+  return
+fi
+export _ZSHRC_LOADED=1
 
 # =============================================================================
 # Human vs AI Agent Detection
@@ -23,7 +23,7 @@ if [[ "$TERM_PROGRAM" == "kiro" && "$Q_TERM_DISABLED" == "1" ]] || \
   :
 else
   # This appears to be a human terminal session
-  [ -f ~/.dotfiles/shell/zshrc.human ] && source ~/.dotfiles/shell/zshrc.human
+  [ -f ~/.dotfiles/dotfiles/.zshrc.human ] && source ~/.dotfiles/dotfiles/.zshrc.human
 fi
 
 
@@ -35,6 +35,11 @@ export PATH="$HOME/.dotfiles/bin:$PATH"
 
 # Standard paths
 export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+
+# Add docker bin if it exists (user install rather than system-wide)
+if [ -d "$HOME/.docker/bin" ]; then
+  export PATH="$HOME/.docker/bin:$PATH"
+fi
 
 # =============================================================================
 # History Configuration
@@ -99,12 +104,19 @@ if [ -d "$HOME/.local/share/mise/shims" ]; then
 fi
 
 # =============================================================================
-# Load machine-specific configuration
+# Load homebrew tools into PATH
 # =============================================================================
-# Create ~/.zshrc.local for machine-specific customizations
-# (work-specific aliases, credentials, paths, etc.)
-[ -f ~/.zshrc.local ] && source ~/.zshrc.local
+if command -v brew >/dev/null 2>&1; then
+  # Add openssl to PATH
+  openssl_prefix="$(brew --prefix openssl@3 2>/dev/null || brew --prefix openssl 2>/dev/null || true)"
+  if [[ -n "$openssl_prefix" && -d "$openssl_prefix/bin" ]]; then
+    export PATH="$openssl_prefix/bin:$PATH"
+  fi
+fi
 
+# =============================================================================
+# Custom functions
+# =============================================================================
 # Usage: schedule "5pm" "command to run"
 schedule() {
     echo "cd $(pwd) && $2" | at $1

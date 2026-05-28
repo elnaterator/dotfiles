@@ -2,47 +2,14 @@
 
 set -euo pipefail
 
-# =============================================================================
-# Dotfiles Setup Script
-# =============================================================================
-#
-# This script creates symlinks from your home directory to the dotfiles
-# in this repository. It safely backs up existing files before creating links.
-#
-# Usage: ./setup.sh [--force]
-#   --force: Skip confirmation prompts
-# =============================================================================
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Get the absolute path to the dotfiles directory (where this script lives)
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_DIR="$DOTFILES_DIR/.backups/$(date +%Y%m%d_%H%M%S)"
-FORCE=false
-BACKUP_NEEDED=false
-
-# Parse arguments
-for arg in "$@"; do
-  case $arg in
-    --force)
-      FORCE=true
-      shift
-      ;;
-  esac
-done
-
-# =============================================================================
-# Helper Functions
-# =============================================================================
-
-print_header() {
-  echo -e "\n${BLUE}==>${NC} $1"
-}
 
 print_success() {
   echo -e "${GREEN}✓${NC} $1"
@@ -56,396 +23,55 @@ print_error() {
   echo -e "${RED}✗${NC} $1"
 }
 
-confirm() {
-  if [ "$FORCE" = true ]; then
-    return 0
-  fi
-
-  local prompt="$1"
-  local response
-  read -rp "$(echo -e "${YELLOW}?${NC} $prompt (y/N): ")" response
-  case "$response" in
-    [yY][eE][sS]|[yY])
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
-
 check_for_existing_files() {
-  local files_to_check=(
-    "$HOME/.zshrc"
-    "$HOME/.bashrc"
-    "$HOME/.bash_profile"
-  )
-
-  # Add individual skills to backup check
-  for skill_dir in "$DOTFILES_DIR/skills"/*/ ; do
-    if [ -d "$skill_dir" ]; then
-      skill_name=$(basename "$skill_dir")
-      if [ -f "$skill_dir/SKILL.md" ]; then
-        files_to_check+=("$HOME/.claude/skills/$skill_name")
-      fi
-    fi
-  done
-
-  # Add individual agents to backup check (recursively find all .md files)
-  while IFS= read -r -d '' agent_file; do
-    agent_name=$(basename "$agent_file")
-    files_to_check+=("$HOME/.claude/agents/$agent_name")
-  done < <(find "$DOTFILES_DIR/agents" -name "*.md" -not -name "README.md" -type f -print0 2>/dev/null)
-
-  local existing_files=()
-  for file in "${files_to_check[@]}"; do
-    if [ -e "$file" ] && [ ! -L "$file" ]; then
-      existing_files+=("$file")
-    fi
-  done
-
-  if [ ${#existing_files[@]} -gt 0 ]; then
-    echo ""
-    print_warning "Found existing configuration files:"
-    for file in "${existing_files[@]}"; do
-      echo "  - $file"
-    done
-    echo ""
-
-    if confirm "Would you like to back up these files before replacing them?"; then
-      BACKUP_NEEDED=true
-      return 0
-    else
-      print_warning "Skipping backup. Existing files will be replaced."
-      return 1
-    fi
+  err=0
+  if [ -e "$HOME/.dotfiles" ]; then
+    print_warning "~/.dotfiles already exists. Exiting without changes."
+    err=1
   fi
 
-  return 1
-}
-
-backup_file() {
-  local file=$1
-  if [ "$BACKUP_NEEDED" = true ] && [ -e "$file" ] && [ ! -L "$file" ]; then
-    mkdir -p "$BACKUP_DIR"
-    cp -r "$file" "$BACKUP_DIR/"
-    print_success "Backed up: $file -> $BACKUP_DIR/"
-    return 0
+  if [ -f "$HOME/.zshrc" ] && grep -q "NateHadz" "$HOME/.zshrc"; then
+    print_warning "~/.zshrc already contains NateHadz. Exiting without changes."
+    err=1
   fi
-  return 1
+
+  if [ -f "$HOME/.bashrc" ] && grep -q "NateHadz" "$HOME/.bashrc"; then
+    print_warning "~/.bashrc already contains NateHadz. Exiting without changes."
+    err=1
+  fi
+
+  if [ $err -ne 0 ]; then
+    exit 1
+  fi
 }
 
-create_symlink() {
+append_file_contents() {
   local source=$1
   local target=$2
 
-  # Check if source exists
-  if [ ! -e "$source" ]; then
+  if [ ! -f "$source" ]; then
     print_error "Source file does not exist: $source"
-    return 1
+    exit 1
   fi
 
-  # If target exists and is not a symlink, back it up
-  if [ -e "$target" ] && [ ! -L "$target" ]; then
-    backup_file "$target"
-    rm -rf "$target"
-  elif [ -L "$target" ]; then
-    # If it's already a symlink, remove it
-    rm "$target"
-  fi
-
-  # Create the symlink
-  ln -s "$source" "$target"
-  print_success "Linked: $target -> $source"
+  touch "$target"
+  cat "$source" >> "$target"
+  print_success "Appended $source to $target"
 }
 
-# =============================================================================
-# Main Setup
-# =============================================================================
-
 echo ""
-echo "╔════════════════════════════════════════════╗"
-echo "║       Dotfiles Setup Script                ║"
-echo "╚════════════════════════════════════════════╝"
-echo ""
+echo "Dotfiles setup"
 echo "Dotfiles directory: $DOTFILES_DIR"
 echo ""
 
-if ! confirm "This will symlink dotfiles to your home directory. Continue?"; then
-  echo "Setup cancelled."
-  exit 0
-fi
+check_for_existing_files
 
-# Check for existing files and ask about backup
-check_for_existing_files || true
+ln -s "$DOTFILES_DIR" "$HOME/.dotfiles"
+print_success "Created ~/.dotfiles symlink to $DOTFILES_DIR"
 
-# =============================================================================
-# Create necessary directories
-# =============================================================================
-
-print_header "Creating necessary directories"
-
-mkdir -p "$HOME/.claude"
-print_success "Created ~/.claude"
-
-# =============================================================================
-# Shell Configuration Files
-# =============================================================================
-
-print_header "Setting up shell configuration"
-
-create_symlink "$DOTFILES_DIR/shell/zshrc" "$HOME/.zshrc"
-create_symlink "$DOTFILES_DIR/shell/bashrc" "$HOME/.bashrc"
-create_symlink "$DOTFILES_DIR/shell/bash_profile" "$HOME/.bash_profile"
-
-# Create .zshrc.local if it doesn't exist
-if [ ! -f "$HOME/.zshrc.local" ]; then
-  print_warning "Creating ~/.zshrc.local from example template"
-  cp "$DOTFILES_DIR/shell/zshrc.local.example" "$HOME/.zshrc.local"
-  print_success "Created ~/.zshrc.local (customize this for machine-specific config)"
-else
-  print_success "~/.zshrc.local already exists (not overwriting)"
-fi
-
-# =============================================================================
-# Claude Code Skills
-# =============================================================================
-
-print_header "Setting up Claude Code skills"
-
-# Create skills directory if it doesn't exist
-mkdir -p "$HOME/.claude/skills"
-
-# Function to check if skill is enabled in config
-is_skill_enabled() {
-  local skill_name=$1
-  local config_file="$DOTFILES_DIR/skills/config.toml"
-  local local_config="$DOTFILES_DIR/skills/config.local.toml"
-
-  # Check local config first (machine-specific overrides)
-  if [ -f "$local_config" ]; then
-    if grep -q "^\[$skill_name\]" "$local_config"; then
-      if grep -A 1 "^\[$skill_name\]" "$local_config" | grep -q "enabled = true"; then
-        return 0
-      else
-        return 1
-      fi
-    fi
-  fi
-
-  # Fall back to main config
-  if [ -f "$config_file" ]; then
-    if grep -q "^\[$skill_name\]" "$config_file"; then
-      if grep -A 1 "^\[$skill_name\]" "$config_file" | grep -q "enabled = true"; then
-        return 0
-      else
-        return 1
-      fi
-    fi
-  fi
-
-  # If skill not in any config, enable by default
-  return 0
-}
-
-# Function to symlink a skill directory
-symlink_skill() {
-  local skill_dir=$1
-  local skill_name=$(basename "$skill_dir")
-
-  # Only process directories with a valid SKILL.md file
-  if [ -f "$skill_dir/SKILL.md" ]; then
-    if is_skill_enabled "$skill_name"; then
-      create_symlink "$skill_dir" "$HOME/.claude/skills/$skill_name"
-    else
-      # Remove symlink if skill is disabled
-      if [ -L "$HOME/.claude/skills/$skill_name" ]; then
-        rm "$HOME/.claude/skills/$skill_name"
-        print_warning "Removed disabled skill: $skill_name"
-      fi
-    fi
-  fi
-}
-
-# Symlink individual skills from the dotfiles repo
-for skill_dir in "$DOTFILES_DIR/skills"/*/ ; do
-  if [ -d "$skill_dir" ]; then
-    symlink_skill "$skill_dir"
-  fi
-done
-
-# Symlink external skills from config.local.toml
-local_config="$DOTFILES_DIR/skills/config.local.toml"
-if [ -f "$local_config" ]; then
-  # Extract external_skills.paths array from TOML (supports paths with ~ and absolute paths)
-  # This reads lines between [external_skills] and next section or EOF, extracts quoted paths
-  external_paths=$(awk '
-    /^\[external_skills\]/ { in_section=1; next }
-    /^\[[^]]*\]$/ && in_section { in_section=0 }
-    in_section && /"/ {
-      start = index($0, "\"")
-      if (start > 0) {
-        rest = substr($0, start + 1)
-        end = index(rest, "\"")
-        if (end > 0) print substr(rest, 1, end - 1)
-      }
-    }
-  ' "$local_config")
-
-  if [ -n "$external_paths" ]; then
-    print_header "Processing external skills..."
-    while IFS= read -r skill_path; do
-      if [ -n "$skill_path" ]; then
-        # Expand ~ to home directory
-        expanded_path="${skill_path/#\~/$HOME}"
-
-        if [ -d "$expanded_path" ]; then
-          symlink_skill "$expanded_path"
-        else
-          print_warning "External skill path not found: $skill_path"
-        fi
-      fi
-    done <<< "$external_paths"
-  fi
-fi
-
-# =============================================================================
-# Claude Code Agents (Subagents)
-# =============================================================================
-
-print_header "Setting up Claude Code subagents"
-
-# Create agents directory if it doesn't exist
-mkdir -p "$HOME/.claude/agents"
-
-# Function to check if agent is enabled in config
-is_agent_enabled() {
-  local agent_name=$1
-  local config_file="$DOTFILES_DIR/agents/config.toml"
-  local local_config="$DOTFILES_DIR/agents/config.local.toml"
-
-  # Check local config first (machine-specific overrides)
-  if [ -f "$local_config" ]; then
-    if grep -q "^\[$agent_name\]" "$local_config"; then
-      if grep -A 1 "^\[$agent_name\]" "$local_config" | grep -q "enabled = true"; then
-        return 0
-      else
-        return 1
-      fi
-    fi
-  fi
-
-  # Fall back to main config
-  if [ -f "$config_file" ]; then
-    if grep -q "^\[$agent_name\]" "$config_file"; then
-      if grep -A 1 "^\[$agent_name\]" "$config_file" | grep -q "enabled = true"; then
-        return 0
-      else
-        return 1
-      fi
-    fi
-  fi
-
-  # If agent not in any config, enable by default
-  return 0
-}
-
-# Function to symlink an agent file
-symlink_agent() {
-  local agent_file=$1
-  local agent_filename=$(basename "$agent_file")
-  local agent_name="${agent_filename%.md}"
-
-  if is_agent_enabled "$agent_name"; then
-    create_symlink "$agent_file" "$HOME/.claude/agents/$agent_filename"
-  else
-    # Remove symlink if agent is disabled
-    if [ -L "$HOME/.claude/agents/$agent_filename" ]; then
-      rm "$HOME/.claude/agents/$agent_filename"
-      print_warning "Removed disabled agent: $agent_name"
-    fi
-  fi
-}
-
-# Symlink individual agent markdown files from the dotfiles repo
-# Find all .md files in agents/ directory (excluding README.md) recursively
-while IFS= read -r -d '' agent_file; do
-  symlink_agent "$agent_file"
-done < <(find "$DOTFILES_DIR/agents" -name "*.md" -not -name "README.md" -type f -print0 2>/dev/null)
-
-# Symlink external agents from config.local.toml
-local_config="$DOTFILES_DIR/agents/config.local.toml"
-if [ -f "$local_config" ]; then
-  # Extract external_agents.paths array from TOML
-  external_paths=$(awk '
-    /^\[external_agents\]/ { in_section=1; next }
-    /^\[[^]]*\]$/ && in_section { in_section=0 }
-    in_section && /"/ {
-      start = index($0, "\"")
-      if (start > 0) {
-        rest = substr($0, start + 1)
-        end = index(rest, "\"")
-        if (end > 0) print substr(rest, 1, end - 1)
-      }
-    }
-  ' "$local_config")
-
-  if [ -n "$external_paths" ]; then
-    print_header "Processing external agents..."
-    while IFS= read -r agent_path; do
-      if [ -n "$agent_path" ]; then
-        # Expand ~ to home directory
-        expanded_path="${agent_path/#\~/$HOME}"
-
-        if [ -f "$expanded_path" ] && [[ "$expanded_path" == *.md ]]; then
-          symlink_agent "$expanded_path"
-        else
-          print_warning "External agent path not found or not a .md file: $agent_path"
-        fi
-      fi
-    done <<< "$external_paths"
-  fi
-fi
-
-# =============================================================================
-# PATH Setup
-# =============================================================================
-
-print_header "Configuring PATH"
-
-# Check if bin directory is already in PATH (via symlinked configs)
-if [[ ":$PATH:" == *":$DOTFILES_DIR/bin:"* ]]; then
-  print_success "bin directory already in PATH"
-else
-  print_warning "bin directory will be added to PATH when you restart your shell"
-fi
-
-# Update the dotfiles symlink for easy access
-if [ ! -L "$HOME/.dotfiles" ]; then
-  ln -s "$DOTFILES_DIR" "$HOME/.dotfiles"
-  print_success "Created ~/.dotfiles symlink to $DOTFILES_DIR"
-else
-  print_success "~/.dotfiles symlink already exists"
-fi
-
-# =============================================================================
-# Summary
-# =============================================================================
+append_file_contents "$HOME/.dotfiles/dotfiles/.zshrc.local" "$HOME/.zshrc"
+append_file_contents "$HOME/.dotfiles/dotfiles/.bashrc.local" "$HOME/.bashrc"
 
 echo ""
-print_header "Setup Complete!"
-echo ""
-
-if [ -d "$BACKUP_DIR" ]; then
-  echo "Original files backed up to:"
-  echo "  $BACKUP_DIR"
-  echo ""
-fi
-
-echo "Next steps:"
-echo "  1. Review and customize ~/.zshrc.local for machine-specific shell settings"
-echo "  2. Restart your terminal or run: source ~/.zshrc (or ~/.bashrc)"
-echo "  3. Verify PATH includes $DOTFILES_DIR/bin"
-echo ""
-print_success "All done! Enjoy your dotfiles."
+print_success "Setup complete."
 echo ""
