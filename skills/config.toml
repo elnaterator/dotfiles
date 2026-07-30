@@ -5,3 +5,7 @@
 [git-helper]
 enabled = true
 description = "Git workflow assistant for commits, branches, and PRs"
+
+[write-like-me]
+enabled = true
+description = "Drafts and edits prose in your personal writing voice"

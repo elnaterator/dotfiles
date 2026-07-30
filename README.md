@@ -13,20 +13,23 @@ cd ~/workspace/dotfiles
 ```
 
 The setup script will:
-- Create symlinks from your home directory to configuration files in this repo
-- Back up any existing configuration files to `.backups/[timestamp]/`
-- Create `~/.zshrc.local` from template for machine-specific shell settings
-- Add the `bin/` directory to your PATH
+- Create a `~/.dotfiles` symlink pointing at this repository
+- Append `dotfiles/.zshrc.local` to `~/.zshrc` and `dotfiles/.bashrc.local` to `~/.bashrc`
+
+That's all it does. Shell config, PATH, skills, and agents are wired up by those appended
+snippets and by manual symlinks — see the sections below. `setup.sh` does **not** symlink
+shell configs, create backups, or install skills/agents.
 
 ## Repository Structure
 
 ```
 dotfiles/
 ├── bin/              # Utility scripts (AWS tools, vault, git helpers)
-├── shell/            # Shell configuration files
-│   ├── zshrc         # Main zsh configuration
-│   ├── bashrc        # Main bash configuration
-│   └── bash_profile  # Bash profile
+├── dotfiles/         # Shell configuration files
+│   ├── .zshrc        # Main zsh configuration
+│   ├── .bashrc       # Main bash configuration
+│   ├── .zshrc.local  # zsh snippet appended to ~/.zshrc by setup.sh
+│   └── .bashrc.local # bash snippet appended to ~/.bashrc by setup.sh
 ├── skills/           # AI Agent Skills
 ├── agents/           # AI Agents
 ├── setup.sh          # Main setup script
@@ -37,10 +40,12 @@ dotfiles/
 
 ### Shell (zsh/bash)
 
-Shell configurations are in the `shell/` directory and will be symlinked to:
-- `~/.zshrc` → `shell/zshrc`
-- `~/.bashrc` → `shell/bashrc`
-- `~/.bash_profile` → `shell/bash_profile`
+Shell configurations live in the `dotfiles/` directory. `setup.sh` appends the `.local`
+snippets to your real rc files:
+- `dotfiles/.zshrc.local` → appended to `~/.zshrc`
+- `dotfiles/.bashrc.local` → appended to `~/.bashrc`
+
+Those snippets are what source the main configs and add `bin/` to your PATH.
 
 **Machine-Specific Customizations:**
 
@@ -76,21 +81,15 @@ See `bin/` directory for full list. Most scripts include usage information when 
 
 If you prefer not to use the automated setup script:
 
-1. Symlink shell configs:
+1. Create the repo symlink:
    ```bash
-   ln -s ~/.dotfiles/shell/zshrc ~/.zshrc
-   ln -s ~/.dotfiles/shell/bashrc ~/.bashrc
-   ln -s ~/.dotfiles/shell/bash_profile ~/.bash_profile
+   ln -s ~/workspace/dotfiles ~/.dotfiles
    ```
 
-2. Add bin to PATH (add to your shell config):
+2. Source the config from your rc files (this also adds `bin/` to PATH):
    ```bash
-   export PATH="$HOME/.dotfiles/bin:$PATH"
-   ```
-
-3. Create local config:
-   ```bash
-   cp ~/.dotfiles/shell/zshrc.local.example ~/.zshrc.local
+   echo 'source ~/.dotfiles/dotfiles/.zshrc' >> ~/.zshrc
+   echo 'source ~/.dotfiles/dotfiles/.bashrc' >> ~/.bashrc
    ```
 
 ## Updating
@@ -130,11 +129,37 @@ The `agents/` directory is for AI Agents. See [agents/README.md](agents/README.m
 
 Agents are autonomous AI systems that can perform complex, multi-step tasks and maintain context across workflows.
 
-Both skills and agents:
-- Are symlinked to `~/.claude/skills/` and `~/.claude/agents/` respectively
-- Can be enabled/disabled via `config.toml` in their respective directories
-- Support machine-specific overrides via `config.local.toml` (gitignored)
-- Support external paths in `config.local.toml` to include resources from outside this repo
+**Activating skills** (`setup.sh` does not do this — install manually).
+
+Skills are managed with the [`skills`](https://github.com/vercel-labs/skills) CLI, which
+symlinks each skill into `~/.claude/skills/` (and other agents' dirs, e.g. Cursor):
+
+```bash
+# Install one skill from this repo (run from the repo root)
+npx skills add ./skills/write-like-me
+
+# Install every skill in this repo
+for s in skills/*/; do [ -f "$s/SKILL.md" ] && npx skills add "./$s"; done
+
+# Manage
+npx skills list          # show installed skills
+npx skills update        # upgrade installed skills
+npx skills remove <name> # uninstall
+```
+
+To install community skills instead of local ones, use `npx skills find` or
+`npx skills add owner/repo`. See the [CLI docs](https://github.com/vercel-labs/skills).
+
+**Activating agents** (manual — no CLI for these yet):
+
+```bash
+# Symlink an agent's .md file into ~/.claude/agents/
+ln -s ~/.dotfiles/agents/code-reviewer.md ~/.claude/agents/code-reviewer.md
+```
+
+The `config.toml` files in `skills/` and `agents/` document which resources are intended to be
+enabled; `config.local.toml` (gitignored) is reserved for machine-specific overrides. Nothing
+reads them automatically yet.
 
 ## Dependencies
 
@@ -142,6 +167,7 @@ Common tools used by scripts:
 - **aws** CLI (for AWS scripts)
 - **jq** (JSON processing)
 - **openssl** 1.0.0+ (for vault script)
+- **node** 18+ / **npx** (for the `skills` CLI, used to install AI Agent Skills)
 
 ## Legacy Setup Script
 

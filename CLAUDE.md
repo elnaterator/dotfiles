@@ -18,24 +18,31 @@ The repository uses a symlink-based approach where configuration files in the re
 ./setup.sh
 ```
 
-The setup script:
-- Creates symlinks from `~/.zshrc`, `~/.bashrc`, etc. to files in this repo
-- Backs up existing configs to `.backups/[timestamp]/`
-- Creates `~/.zshrc.local` from template for machine-specific shell settings
-- Creates `~/.dotfiles` symlink to repository location
+The setup script does exactly two things:
+- Creates a `~/.dotfiles` symlink pointing at the repository
+- Appends `dotfiles/.zshrc.local` to `~/.zshrc` and `dotfiles/.bashrc.local` to `~/.bashrc`
 
-**Running the setup script is idempotent** - safe to run multiple times.
+Those appended snippets each `source` the real config in `dotfiles/` (`.zshrc` / `.bashrc`),
+which is what adds `bin/` to PATH and loads everything else.
+
+**It does NOT** symlink shell configs directly, create `.backups/`, generate `~/.zshrc.local`
+from a template, or install skills/agents. Those are either handled by the sourced configs or
+done manually (see below).
+
+**setup.sh is not idempotent** - it appends unconditionally and exits early only if `~/.dotfiles`
+already exists or the rc files already contain `NateHadz`. Re-running after a partial setup can
+duplicate lines.
 
 ## Repository Structure
 
 ```
 dotfiles/
 ├── bin/              # Utility scripts (executable, no extensions)
-├── shell/            # Shell configurations
-│   ├── zshrc         # Main zsh config (→ ~/.zshrc)
-│   ├── bashrc        # Main bash config (→ ~/.bashrc)
-│   ├── bash_profile  # Bash profile (→ ~/.bash_profile)
-│   └── zshrc.local.example  # Template for machine-specific config
+├── dotfiles/         # Shell configurations
+│   ├── .zshrc        # Main zsh config (sourced by ~/.zshrc)
+│   ├── .bashrc       # Main bash config (sourced by ~/.bashrc)
+│   ├── .zshrc.local  # Snippet appended to ~/.zshrc; sources .zshrc + machine-specific settings
+│   └── .bashrc.local # Snippet appended to ~/.bashrc; sources .bashrc
 ├── skills/           # AI Agent Skills
 ├── agents/           # AI Agents
 ├── setup.sh          # Main setup script
@@ -44,24 +51,28 @@ dotfiles/
 
 ## Architecture
 
-### Symlink Strategy
+### Symlink + Source Strategy
 
-Configuration files are symlinked rather than copied:
-- **Benefit**: Changes to files in repo are immediately active
-- **Workflow**: Edit `shell/zshrc` → changes apply to `~/.zshrc` automatically
-- **Safety**: Setup script backs up existing files before creating symlinks
+The repo itself is symlinked to `~/.dotfiles`, and the real rc files `source` configs out of it:
+- **Benefit**: Changes to configs in the repo are immediately active (they're sourced live)
+- **Workflow**: Edit `dotfiles/.zshrc` → changes apply on next `source ~/.zshrc` or new shell
+- **Mechanism**: `setup.sh` appends `source ~/.dotfiles/dotfiles/.zshrc` (via `.zshrc.local`) to `~/.zshrc`
+- **No backups**: `setup.sh` does not back up existing files; it appends and relies on the early-exit guard
 
 ### Machine-Specific Customization Pattern
 
 The shell configs use a `.local` file pattern for machine-specific settings:
 
 **How it works:**
-1. Main config (`shell/zshrc`) is tracked in git and symlinked to `~/.zshrc`
-2. At the end, it sources `~/.zshrc.local` if it exists
-3. `~/.zshrc.local` is gitignored and stays on each machine
-4. Use `~/.zshrc.local` for work-specific paths, aliases, credentials, etc.
+1. Main config (`dotfiles/.zshrc`) is tracked in git and sourced by `~/.zshrc`
+2. `dotfiles/.zshrc.local` (the snippet appended to `~/.zshrc`) is where machine-specific
+   PATH additions, aliases, credentials, and cert setup live — it sources `.zshrc` first, then
+   layers on overrides
+3. Put anything that must NOT be committed directly in `~/.zshrc` below the appended block, or
+   keep it out of the repo entirely
 
-**Template:** `shell/zshrc.local.example` provides a starting point
+**Note:** `dotfiles/.zshrc.local` currently ships in the repo with commented-out examples. There
+is no separate `shell/zshrc.local.example` template — the `.local` file itself is the template.
 
 This allows:
 - Shared configuration across all machines (tracked in git)
@@ -141,9 +152,9 @@ Reference utility displaying all ANSI color codes and text styles (foreground, b
 **Shell configs:**
 ```bash
 # Edit config
-vim shell/zshrc
+vim dotfiles/.zshrc
 
-# Test immediately (config is symlinked)
+# Test immediately (config is sourced from the repo)
 source ~/.zshrc
 
 # Or restart terminal
@@ -167,22 +178,23 @@ script-name [args]
 
 ### Adding New Configuration Files
 
-1. Add config file to appropriate directory (shell/, mise/, etc.)
-2. Update `setup.sh` to create the symlink in the appropriate section
-3. Test by running `./setup.sh` (it's idempotent)
+1. Add config file to appropriate directory (`dotfiles/`, `bin/`, etc.)
+2. `source` it from `dotfiles/.zshrc` (or `.bashrc`) so it loads — `setup.sh` does not symlink
+   individual files
+3. Test by opening a new shell or running `source ~/.zshrc`
 4. Document in README.md
-5. Commit both the config file and updated setup.sh
+5. Commit the config file and the updated `.zshrc`
 
 Example:
 ```bash
 # Add new config
-echo "config content" > shell/new-config
+echo "config content" > dotfiles/new-config
 
-# Update setup.sh to add symlink
-vim setup.sh  # Add create_symlink line
+# Source it from the main config
+echo 'source ~/.dotfiles/dotfiles/new-config' >> dotfiles/.zshrc
 
 # Test
-./setup.sh
+source ~/.zshrc
 
 # Commit
 git add shell/new-config setup.sh README.md
@@ -231,43 +243,40 @@ Follow existing patterns:
 
 The `skills/` directory is for AI Agent Skills. See `skills/README.md` for structure and guidelines.
 
-**Configuration:**
-- `skills/config.toml`: Main config for enabling/disabling repo skills
-- `skills/config.local.toml`: Machine-specific overrides (gitignored)
+**Activation (manual):** Skills are installed with the `skills` CLI
+(https://github.com/vercel-labs/skills), which symlinks them into `~/.claude/skills/`.
+`setup.sh` does NOT do this — install each skill yourself from the repo root:
 
-**External Skills:**
-To include skills from outside this repo, add paths to `skills/config.local.toml`:
-
-```toml
-[external_skills]
-paths = [
-  "~/projects/my-custom-skills/work-helper",
-  "/opt/shared-skills/deploy-assistant",
-]
+```bash
+npx skills add ./skills/write-like-me
 ```
 
-The setup script will symlink external skills to `~/.claude/skills/` alongside repo skills. External skills must have a `SKILL.md` file to be recognized.
+**Configuration (aspirational):**
+- `skills/config.toml`: Intended to enable/disable repo skills
+- `skills/config.local.toml`: Intended for machine-specific overrides (gitignored)
+- `[external_skills].paths` in `config.local.toml`: Intended for skills outside this repo
+
+No tooling currently reads these config files — they document intent. Wiring is manual until a
+setup step is added. A valid skill must have a `SKILL.md` file to be recognized by Claude Code.
 
 ### Agents Directory
 
 The `agents/` directory contains Claude Code subagents. See `agents/README.md` for structure and guidelines.
 
-**Configuration:**
-- `agents/config.toml`: Main config for enabling/disabling repo agents
-- `agents/config.local.toml`: Machine-specific overrides (gitignored)
+**Activation (manual):** An agent is active only once its `.md` file is symlinked into
+`~/.claude/agents/`. `setup.sh` does NOT do this — symlink each agent yourself:
 
-**External Agents:**
-To include agents from outside this repo, add paths to `agents/config.local.toml`:
-
-```toml
-[external_agents]
-paths = [
-  "~/projects/my-custom-agents/deployment-expert.md",
-  "/opt/shared-agents/security-auditor.md",
-]
+```bash
+ln -s ~/.dotfiles/agents/code-reviewer.md ~/.claude/agents/code-reviewer.md
 ```
 
-The setup script will symlink external agents to `~/.claude/agents/` alongside repo agents. External agents must be `.md` files.
+**Configuration (aspirational):**
+- `agents/config.toml`: Intended to enable/disable repo agents
+- `agents/config.local.toml`: Intended for machine-specific overrides (gitignored)
+- `[external_agents].paths` in `config.local.toml`: Intended for agents outside this repo
+
+No tooling currently reads these config files — they document intent. Wiring is manual until a
+setup step is added. Agents must be `.md` files.
 
 ## Dependencies
 
