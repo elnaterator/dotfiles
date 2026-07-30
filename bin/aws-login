@@ -1,0 +1,176 @@
+#!/bin/bash
+
+# Uses okta-aws-cli to log in via web browser
+# Before login it cleans up the credentials in ~/.aws/credentials file for default and given profile
+# After login it updates the credentials in ~/.aws/credentials for the given profile, and adds this as the default profile as well
+
+set -euo pipefail
+
+# Export AWS_PAGER to prevent pagination
+export AWS_PAGER=""
+
+# Get profile name from argument or prompt
+profile="${1:-}"
+
+if [ -z "$profile" ]; then
+  # If no profile provided, show available profiles from okta.yaml
+  if [ -f ~/.okta/okta.yaml ]; then
+    echo "Available profiles in ~/.okta/okta.yaml:"
+    awk '
+      /^  profiles:/ { in_profiles = 1; next }
+      in_profiles && /^  [^ ]/ { exit }
+      in_profiles && /^    [a-z0-9_-]+:/ {
+        profile_name = $0
+        gsub(/^    /, "", profile_name)
+        gsub(/:.*/, "", profile_name)
+        current_profile = profile_name
+        profiles[current_profile] = ""
+        next
+      }
+      in_profiles && current_profile && /aws-iam-role:/ {
+        role = $0
+        gsub(/.*aws-iam-role: "/, "", role)
+        gsub(/".*/, "", role)
+        profiles[current_profile] = role
+      }
+      END {
+        for (prof in profiles) {
+          if (profiles[prof] != "") {
+            print prof " (" profiles[prof] ")"
+          } else {
+            print prof
+          }
+        }
+      }
+    ' ~/.okta/okta.yaml | sort
+    echo ""
+  fi
+  
+  echo "Usage: aws-login <profile>"
+  echo ""
+  echo "Enter profile name:"
+  read profile
+fi
+
+if [ -z "$profile" ]; then
+  echo "Error: Profile name is required"
+  exit 1
+fi
+
+# Validate profile name (alphanumeric, hyphens, and underscores)
+if [[ ! $profile =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: Profile name must contain only alphanumeric characters, hyphens, and underscores"
+  exit 1
+fi
+
+# Validate profile exists in okta.yaml
+if [ -f ~/.okta/okta.yaml ]; then
+  if ! grep -q "^    $profile:" ~/.okta/okta.yaml; then
+    echo "Error: Profile '$profile' not found in ~/.okta/okta.yaml"
+    exit 1
+  fi
+fi
+
+# Create .aws directory if it doesn't exist
+mkdir -p ~/.aws
+
+# Backup current credentials file if it exists
+if [ -f ~/.aws/credentials ]; then
+  cp ~/.aws/credentials ~/.aws/credentials.backup-$(date +"%Y%m%d-%H%M%S")
+fi
+
+# Remove [default] and [$profile] sections from credentials file
+if [ -f ~/.aws/credentials ]; then
+  # Remove [default] section
+  awk '
+    /^\[default\]/ {
+      skip = 1
+      next
+    }
+    /^\[/ && skip {
+      skip = 0
+    }
+    !skip
+  ' ~/.aws/credentials > ~/.aws/credentials.tmp && mv ~/.aws/credentials.tmp ~/.aws/credentials
+
+  # Remove [$profile] section
+  awk -v prof="$profile" '
+    $0 ~ ("^\\[" prof "\\]") {
+      skip = 1
+      next
+    }
+    /^\[/ && skip {
+      skip = 0
+    }
+    !skip
+  ' ~/.aws/credentials > ~/.aws/credentials.tmp && mv ~/.aws/credentials.tmp ~/.aws/credentials
+fi
+
+# Add profile to history
+if [ -f ~/.aws/login-history ]; then
+  grep -q "^$profile$" ~/.aws/login-history || echo "$profile" >> ~/.aws/login-history
+else
+  echo "$profile" > ~/.aws/login-history
+fi
+
+echo "Logging in with okta-aws-cli..."
+echo ""
+
+# Run okta-aws-cli web command with credentials file output
+# The tool will output to AWS credentials file and print status to stderr
+okta-aws-cli web \
+  --format aws-credentials \
+  --write-aws-credentials \
+  --profile "$profile" \
+  --open-browser
+
+# Check if the command succeeded
+if [ $? -ne 0 ]; then
+  echo "Error: okta-aws-cli login failed"
+  exit 1
+fi
+
+echo ""
+echo "Login successful for profile '$profile'"
+
+# Copy the profile section to create a [default] section
+# First, read the profile section into memory, then append it as [default]
+profile_content=$(awk -v prof="$profile" '
+  $0 ~ ("^\\[" prof "\\]") {
+    in_profile = 1
+    next
+  }
+  /^\[/ && in_profile {
+    exit
+  }
+  in_profile {
+    print
+  }
+' ~/.aws/credentials)
+
+# Remove any existing [default] section
+awk '
+  /^\[default\]/ {
+    in_default = 1
+    next
+  }
+  /^\[/ && in_default {
+    in_default = 0
+  }
+  !in_default
+' ~/.aws/credentials > ~/.aws/credentials.tmp && mv ~/.aws/credentials.tmp ~/.aws/credentials
+
+# Append [default] section with the profile credentials
+echo "" >> ~/.aws/credentials
+echo "[default]" >> ~/.aws/credentials
+echo "$profile_content" >> ~/.aws/credentials
+
+echo "Copied profile '$profile' to [default]"
+echo ""
+echo "Available profiles:"
+awk '/^\[/ { gsub(/\[|\]/, ""); print $0 }' ~/.aws/credentials | sort
+echo ""
+echo "You can now use AWS CLI:"
+echo "aws sts get-caller-identity  # Uses default profile"
+echo "aws --profile $profile sts get-caller-identity  # Explicitly use $profile"
+
