@@ -4,6 +4,11 @@
 # ZSH Configuration
 # =============================================================================
 
+# Prevent double-loading in VSCode (shell integration causes re-source)
+# if [[ -n "$_ZSHRC_LOADED" ]]; then
+#   return
+# fi
+# export _ZSHRC_LOADED=1
 
 # =============================================================================
 # Human vs AI Agent Detection
