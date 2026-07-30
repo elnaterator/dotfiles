@@ -9,3 +9,7 @@ description = "Git workflow assistant for commits, branches, and PRs"
 [write-like-me]
 enabled = true
 description = "Drafts and edits prose in your personal writing voice"
+
+[worklog]
+enabled = true
+description = "Captures weekly accomplishments and produces an impact-focused summary email"
