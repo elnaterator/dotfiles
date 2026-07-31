@@ -60,6 +60,8 @@ conciseness — trim fluff and filler while staying friendly and diplomatic. War
 - Contractions: uses them naturally ("I've", "it's", "we're", "I'll"). Not formal-stiff.
 - Jargon/acronyms: comfortable with domain terms and precise identifiers (AWS SES, DNS, SNS, lambda
   resource policy limits, account names + IDs, Terraform module). Uses them plainly, no over-explaining.
+  (Anonymized: examples that named specific accounts, IDs, teams, or coworkers have been replaced with
+  generic placeholders.)
 
 ## Punctuation & formatting quirks
 
@@ -67,11 +69,11 @@ conciseness — trim fluff and filler while staying friendly and diplomatic. War
 - **Straight quotes and apostrophes** ( ' and " ), NOT curly. (The samples show curly quotes from
   Outlook autoformat; per preference, normalize these to straight quotes so drafts paste cleanly.)
 - Parentheses for asides and clarifications: "(fixes and enhancements)", "(requires update to DNS
-  records)", "(234495744611)". Preferred over em-dashes.
+  records)", "(account ID)". Preferred over em-dashes.
 - Capitalization: proper sentence case everywhere, including Teams. Never lowercase-casual.
 - Emoji: **never.** Not in email, not in chat.
-- @mentions people by name when looping them in or asking them to weigh in ("@Sud, Sachin or
-  @Austria, Martin please correct me if I missed anything").
+- @mentions people by name when looping them in or asking them to weigh in ("@Coworker1 or
+  @Coworker2 please correct me if I missed anything").
 - Question marks for soft asks ("Any objection to...?", "Would you recommend we use...?").
 
 ## Register table — how the voice shifts by context
@@ -115,12 +117,12 @@ conciseness — trim fluff and filler while staying friendly and diplomatic. War
 **Before (blunt ask):** "Can we roll out the fixes to prod tomorrow? Let me know."
 **After (his voice):** "It would be great to get the latest changes (fixes and enhancements) rolled out to
 production right away for this small handful of clients.  Any objection to rolling out the incremental
-software fixes and updates tomorrow?  @Sud, Sachin please correct me if I missed anything."
+software fixes and updates tomorrow?  @Coworker1 please correct me if I missed anything."
 
-**Before (curt chat):** "Any update on GitHub Enterprise procurement for FSD?"
-**After (his voice):** "Hi Mora, Roberto, how are you?  I wanted to check in on the status of GitHub
-Enterprise, do you know if any procurement has been initiated for FSD teams?  I would love to know if
-there has been any momentum to move away from bitbucket lately."
+**Before (curt chat):** "Any update on GitHub Enterprise procurement for the team?"
+**After (his voice):** "Hi Coworker1, how are you?  I wanted to check in on the status of GitHub
+Enterprise, do you know if any procurement has been initiated for our teams?  I would love to know if
+there has been any momentum to move away from our current source control lately."
 
 **Before (demanding):** "I need a subdomain naming standard. Which should I use?"
 **After (his voice):** "Is there any email subdomain naming standards or guidance we should follow?  Let me
