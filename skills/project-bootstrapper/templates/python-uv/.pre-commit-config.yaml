@@ -1,0 +1,23 @@
+# Fast, staged-files gate. Install once: make hooks (or `uv run pre-commit install`).
+# Keep `rev`s roughly aligned with the versions in pyproject.toml.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.0
+    hooks:
+      - id: mypy
+        # The hook runs mypy in its own isolated env — it does NOT see your project
+        # deps. Add runtime/type packages here (e.g. types-requests) so hook results
+        # match `make lint`, or rely on `make lint`/CI for the authoritative check.
+        additional_dependencies: []
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]

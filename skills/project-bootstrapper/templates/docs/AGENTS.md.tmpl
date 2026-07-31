@@ -1,0 +1,47 @@
+# AGENTS.md
+
+Guidance for AI agents (Claude Code and others) working in this repository. This is the single source
+of truth — `CLAUDE.md` points here.
+
+## Overview
+
+{{PROJECT_DESCRIPTION}}
+
+## Project structure
+
+```
+{{PROJECT_TREE}}
+```
+
+<!-- With infra: source lives in {{SRC_DIR}}/, infrastructure in infra/. -->
+
+## Common commands
+
+Everything runs through Make (`make help` lists all targets):
+
+| Command | What it does |
+|---------|--------------|
+| `make run` | Run the app locally |
+| `make test` | Run the test suite |
+| `make build` | Build artifacts |
+| `make lint` | Static analysis |
+| `make check` | Format + lint + build + test (run before committing) |
+
+<!-- With infra: `make test`/`check` also validate/check infra.
+     Apply changes in infra/ directly: make -C infra plan|apply|destroy ENV=dev -->
+
+<!-- The root Makefile stays lean (run/test/check). Language and terraform targets live in
+     their own sub-Makefiles (SRC_DIR/Makefile and infra/Makefile). -->
+
+
+## Conventions
+
+- **Language / toolchain:** {{LANGUAGE_TOOLCHAIN}}
+- Follow the existing code style; run `make lint` (and `make format` where available) before finishing.
+- Add/update tests for every behavior change; `make test` must pass.
+- Conventional Commits; atomic commits. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Never commit secrets. Machine-specific config stays out of the repo.
+
+## Gotchas
+
+- {{GOTCHA_1}}

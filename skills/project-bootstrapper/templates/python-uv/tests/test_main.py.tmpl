@@ -1,0 +1,7 @@
+from {{PACKAGE}}.main import main
+
+
+def test_main_prints(capsys) -> None:
+    main()
+    out = capsys.readouterr().out
+    assert out.strip() == "Hello, world!"

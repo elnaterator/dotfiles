@@ -1,0 +1,20 @@
+# Gradle
+.gradle/
+build/
+
+# Keep the wrapper jar committed
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Terraform (if this project has infra/)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+crash.log

@@ -1,0 +1,76 @@
+plugins {
+    application
+    jacoco
+    id("com.diffplug.spotless") version "7.0.4"
+    id("com.github.spotbugs") version "6.5.9"
+}
+
+group = "{{GROUP}}"
+version = "0.1.0"
+
+java {
+    toolchain {
+        // Latest Java LTS. For a published library, lower this to a widely-available
+        // LTS (e.g. 21) so consumers on older JDKs can use it.
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+application {
+    mainClass = "{{PACKAGE}}.App"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation(platform("org.junit:junit-bom:6.1.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Security detectors for SpotBugs (find-sec-bugs).
+    spotbugsPlugins("com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
+}
+
+spotless {
+    java {
+        googleJavaFormat("1.36.1")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// Lock dependency versions so OSV-Scanner can audit them (make deps-lock writes gradle.lockfile).
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+tasks.test {
+    useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+}
+
+// `gradle check` (and `make check`) now enforces: spotless format, SpotBugs, tests, 80% coverage.
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}

@@ -1,0 +1,27 @@
+# Lean root Makefile — spans app code (SRC_DIR) and infra (infra/).
+# Set SRC_DIR to the source subdir (e.g. src, app, cmd).
+# Infra apply/plan/destroy live in infra/: `make -C infra plan ENV=dev`.
+SRC_DIR := {{SRC_DIR}}
+INFRA_DIR := infra
+ENV ?= dev
+ifdef env
+ENV := $(env)
+endif
+
+.DEFAULT_GOAL := help
+.PHONY: help run test check
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
+
+run: ## Run the application
+	$(MAKE) -C $(SRC_DIR) run
+
+test: ## Test the app and run infra tests
+	$(MAKE) -C $(SRC_DIR) test
+	$(MAKE) -C $(INFRA_DIR) test
+
+check: ## Full gate: app check + infra check (fmt/lint/validate)
+	$(MAKE) -C $(SRC_DIR) check
+	$(MAKE) -C $(INFRA_DIR) check ENV=$(ENV)

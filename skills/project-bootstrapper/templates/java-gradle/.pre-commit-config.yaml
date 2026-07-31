@@ -1,0 +1,11 @@
+# Fast, staged-files gate. Install once: make hooks (or `uv run pre-commit install`).
+# Uses local gradle tasks (no external hook repos).
+repos:
+  - repo: local
+    hooks:
+      - id: spotless
+        name: spotless (format Java)
+        entry: ./gradlew spotlessApply
+        language: system
+        types: [java]
+        pass_filenames: false
