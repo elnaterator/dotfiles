@@ -1,0 +1,17 @@
+# Fast, staged-files gate. Install once: make hooks (or `pre-commit install`).
+# Uses local tools (install them with `make tools`).
+repos:
+  - repo: local
+    hooks:
+      - id: golangci-lint-fmt
+        name: golangci-lint fmt
+        entry: golangci-lint fmt
+        language: system
+        types: [go]
+        pass_filenames: false
+      - id: golangci-lint
+        name: golangci-lint run
+        entry: golangci-lint run
+        language: system
+        types: [go]
+        pass_filenames: false

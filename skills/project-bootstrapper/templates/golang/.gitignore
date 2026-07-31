@@ -1,0 +1,19 @@
+# Go
+bin/
+*.exe
+*.test
+*.out
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+
+# Terraform (if this project has infra/)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+crash.log

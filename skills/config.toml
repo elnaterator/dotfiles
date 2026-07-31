@@ -13,3 +13,7 @@ description = "Drafts and edits prose in your personal writing voice"
 [worklog]
 enabled = true
 description = "Captures weekly accomplishments and produces an impact-focused summary email"
+
+[project-bootstrapper]
+enabled = true
+description = "Scaffolds/upgrades projects to standard layout (docs, Makefiles, optional Terraform infra)"

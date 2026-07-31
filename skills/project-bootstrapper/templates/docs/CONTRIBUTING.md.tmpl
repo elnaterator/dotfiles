@@ -1,0 +1,60 @@
+# Contributing to {{PROJECT_NAME}}
+
+Thanks for contributing! This guide covers how to get set up and the conventions we follow.
+
+## Development setup
+
+```bash
+{{DEV_SETUP_COMMANDS}}
+```
+
+## Common tasks
+
+All routine tasks run through the `Makefile`:
+
+```bash
+make help     # list all targets
+make run      # run locally
+make test     # run the test suite
+make build    # build artifacts
+make lint     # static checks
+make check    # format + lint + build + test (run before committing)
+```
+
+<!-- If the project has infra/: root `make test`/`check` also validate/check infra.
+     Apply/plan/destroy run in infra/ directly, per environment:
+       make -C infra plan ENV=dev / make -C infra apply ENV=prd -->
+
+## Branching
+
+Branch from `main` using `<type>/<short-description>`:
+
+- `feature/…`, `fix/…`, `refactor/…`, `docs/…`, `chore/…`
+
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>: <short imperative summary>
+
+Optional body explaining the why.
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`. Keep commits atomic — one logical
+change each.
+
+## Tests
+
+Add or update tests with every behavior change. `make test` must pass before you open a PR.
+
+## Pull requests
+
+1. Branch, commit, and push.
+2. Open a PR with a clear summary of **what** changed and **why**, plus how to verify it.
+3. Ensure CI (lint + tests) is green.
+4. Request review; address feedback with follow-up commits.
+
+## Code style
+
+Formatting and linting are enforced via `make lint` / `make format`. Run them before pushing.
