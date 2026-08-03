@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# Check the size of a JSON policy document the way AWS does.
+#
+# AWS does not count whitespace when measuring a policy against its size quota,
+# so the document is compacted with jq (whitespace between JSON tokens removed,
+# whitespace inside string values preserved) before counting.
+#
+# Usage: aws-policy-check [-t TYPE] FILE [FILE...]
+#        aws-policy-check [-t TYPE] -          # read from stdin
+#        aws-policy-check -l                   # list known policy types
+
+set -uo pipefail
+
+# TYPE|LIMIT|DESCRIPTION  (limits in characters, whitespace excluded)
+LIMITS='iam-managed|6144|IAM managed policy
+iam-inline-user|2048|IAM inline policy for a user
+iam-inline-group|5120|IAM inline policy for a group
+iam-inline-role|10240|IAM inline policy for a role
+iam-trust|2048|IAM role trust policy
+session|2048|STS session / assume-role inline policy
+scp|5120|Organizations service control policy
+rcp|5120|Organizations resource control policy
+s3|20480|S3 bucket policy
+kms|32768|KMS key policy
+sqs|8192|SQS queue policy
+sns|30720|SNS topic policy
+lambda|20480|Lambda resource-based policy
+secretsmanager|20480|Secrets Manager resource policy'
+
+usage() {
+  cat >&2 <<EOF
+Usage: aws-policy-check [-t TYPE] FILE [FILE...]
+       aws-policy-check [-t TYPE] -        read policy from stdin
+       aws-policy-check -l                 list known policy types
+
+  -t TYPE   check against one policy type only (default: all types)
+  -l        list policy types and their size quotas
+EOF
+  exit 2
+}
+
+list_types() {
+  printf "%-18s %-8s %s\n" "TYPE" "LIMIT" "DESCRIPTION"
+  printf "%-18s %-8s %s\n" "------------------" "--------" "-----------"
+  while IFS='|' read -r type limit desc; do
+    printf "%-18s %-8s %s\n" "$type" "$limit" "$desc"
+  done <<< "$LIMITS"
+}
+
+TYPE=""
+while getopts ":t:lh" opt; do
+  case "$opt" in
+    t) TYPE="$OPTARG" ;;
+    l) list_types; exit 0 ;;
+    h) usage ;;
+    *) usage ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+[ $# -eq 0 ] && usage
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Error: jq is required" >&2
+  exit 1
+fi
+
+if [ -n "$TYPE" ] && ! grep -q "^${TYPE}|" <<< "$LIMITS"; then
+  echo "Error: unknown policy type '$TYPE' (see -l)" >&2
+  exit 1
+fi
+
+check_file() {
+  local file="$1" label="$2" compact raw_bytes size bytes
+
+  compact=$(jq -c . "$file" 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "Error: $label is not valid JSON" >&2
+    echo "  ${compact%%$'\n'*}" >&2
+    return 1
+  fi
+
+  raw_bytes=$(wc -c < "$file" | tr -d ' ')
+  # AWS counts characters; count both so multibyte documents are unambiguous.
+  size=$(printf '%s' "$compact" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' ')
+  bytes=$(printf '%s' "$compact" | wc -c | tr -d ' ')
+
+  echo "$label"
+  printf "  %-22s %s\n" "raw file size:" "$raw_bytes bytes"
+  printf "  %-22s %s\n" "policy size (AWS):" "$size characters ($bytes bytes)"
+  printf "  %-22s %s\n" "whitespace removed:" "$((raw_bytes - bytes)) bytes"
+  echo
+
+  printf "  %-18s %-8s %-8s %-6s %s\n" "TYPE" "LIMIT" "USED" "PCT" "STATUS"
+  printf "  %-18s %-8s %-8s %-6s %s\n" "------------------" "--------" "--------" "------" "------"
+
+  local rc=0 type limit desc pct status
+  while IFS='|' read -r type limit desc; do
+    [ -n "$TYPE" ] && [ "$type" != "$TYPE" ] && continue
+    pct=$((size * 100 / limit))
+    if [ "$size" -gt "$limit" ]; then
+      status="OVER by $((size - limit))"
+      rc=1
+    else
+      status="ok, $((limit - size)) left"
+    fi
+    printf "  %-18s %-8s %-8s %-6s %s\n" "$type" "$limit" "$size" "${pct}%" "$status"
+  done <<< "$LIMITS"
+  echo
+
+  return $rc
+}
+
+EXIT=0
+TMP=""
+cleanup() { [ -n "$TMP" ] && rm -f "$TMP"; }
+trap cleanup EXIT
+
+for arg in "$@"; do
+  if [ "$arg" = "-" ]; then
+    TMP=$(mktemp "${TMPDIR:-/tmp}/aws-policy-check.XXXXXX")
+    cat > "$TMP"
+    check_file "$TMP" "(stdin)" || EXIT=1
+    rm -f "$TMP"; TMP=""
+  elif [ ! -f "$arg" ]; then
+    echo "Error: no such file: $arg" >&2
+    EXIT=1
+  else
+    check_file "$arg" "$arg" || EXIT=1
+  fi
+done
+
+exit $EXIT
