@@ -7,6 +7,9 @@ agents/config.local.toml
 # Backup directories created by setup script
 .backups/
 
+# Build output (zip-skills archives)
+dist/
+
 # OS-specific files
 .DS_Store
 .DS_Store?

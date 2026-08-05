@@ -1,0 +1,285 @@
+#!/usr/bin/env bash
+#
+# Package skills from this repo into zip archives for upload to Claude Code,
+# Claude Cowork, or other agent editors.
+#
+# One zip per skill, written to dist/skills/ (gitignored).
+# Files ignored by git (e.g. write-like-me/samples/) are excluded.
+#
+# Usage:
+#   zip-skills                 Interactive picker (space to toggle, enter to zip)
+#   zip-skills --all           Zip every skill, no prompts
+#   zip-skills write-like-me   Zip named skill(s)
+#   zip-skills --list          List available skills
+#   zip-skills --clean         Remove the output directory
+#
+
+set -euo pipefail
+
+DOTFILES_DIR=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)
+SKILLS_DIR="$DOTFILES_DIR/skills"
+OUT_DIR="$DOTFILES_DIR/dist/skills"
+
+saved_stty=""
+cursor=0
+selected_count=0
+skill_names=()
+selected_flags=()
+
+usage() {
+    # Print the header comment block (everything after the shebang up to the
+    # first non-comment line), stripped of its leading '# '.
+    awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
+}
+
+cleanup_terminal() {
+    if [ -n "$saved_stty" ]; then
+        stty "$saved_stty"
+    fi
+    tput cnorm 2>/dev/null || true
+}
+
+# A skill is any directory under skills/ containing a SKILL.md
+discover_skills() {
+    local dir
+    for dir in "$SKILLS_DIR"/*/; do
+        [ -f "${dir}SKILL.md" ] || continue
+        skill_names+=("$(basename "$dir")")
+        selected_flags+=(0)
+    done
+
+    if [ ${#skill_names[@]} -eq 0 ]; then
+        echo "Error: no skills found in $SKILLS_DIR (a skill needs a SKILL.md)" >&2
+        exit 1
+    fi
+}
+
+draw_menu() {
+    local total_lines visible_lines start end i prefix pointer
+
+    total_lines=$(tput lines 2>/dev/null || echo 24)
+    visible_lines=$((total_lines - 7))
+    if [ "$visible_lines" -lt 5 ]; then
+        visible_lines=5
+    fi
+
+    start=0
+    if [ "$cursor" -ge "$visible_lines" ]; then
+        start=$((cursor - visible_lines + 1))
+    fi
+
+    end=$((start + visible_lines - 1))
+    if [ "$end" -ge "${#skill_names[@]}" ]; then
+        end=$((${#skill_names[@]} - 1))
+    fi
+
+    printf '\033[H\033[2J'
+    echo "Select skills to zip"
+    echo "Up/Down: move  Space: toggle  a: all  Enter: confirm  q: cancel"
+    echo "Output: $OUT_DIR"
+    echo "Selected: $selected_count"
+    echo
+
+    for ((i = start; i <= end; i++)); do
+        if [ "${selected_flags[i]}" -eq 1 ]; then
+            prefix="[x]"
+        else
+            prefix="[ ]"
+        fi
+
+        if [ "$i" -eq "$cursor" ]; then
+            pointer=">"
+        else
+            pointer=" "
+        fi
+
+        printf '%s %s %s\n' "$pointer" "$prefix" "${skill_names[i]}"
+    done
+
+    if [ "$start" -gt 0 ] || [ "$end" -lt $((${#skill_names[@]} - 1)) ]; then
+        echo
+        echo "Showing $((start + 1))-$((end + 1)) of ${#skill_names[@]} skills"
+    fi
+}
+
+toggle_selection() {
+    if [ "${selected_flags[cursor]}" -eq 1 ]; then
+        selected_flags[cursor]=0
+        selected_count=$((selected_count - 1))
+    else
+        selected_flags[cursor]=1
+        selected_count=$((selected_count + 1))
+    fi
+}
+
+select_all() {
+    local i
+    for ((i = 0; i < ${#skill_names[@]}; i++)); do
+        selected_flags[i]=1
+    done
+    selected_count=${#skill_names[@]}
+}
+
+interactive_select() {
+    local key
+
+    saved_stty=$(stty -g)
+    trap cleanup_terminal EXIT INT TERM
+    stty -echo -icanon time 0 min 1
+    tput civis 2>/dev/null || true
+
+    while true; do
+        draw_menu
+        IFS= read -rsn1 key
+
+        case "$key" in
+            '')
+                break
+                ;;
+            ' ')
+                toggle_selection
+                ;;
+            'a'|'A')
+                select_all
+                ;;
+            'q'|'Q')
+                cleanup_terminal
+                echo "Cancelled" >&2
+                exit 0
+                ;;
+            $'\x1b')
+                IFS= read -rsn2 key || true
+                case "$key" in
+                    '[A')
+                        if [ "$cursor" -gt 0 ]; then
+                            cursor=$((cursor - 1))
+                        fi
+                        ;;
+                    '[B')
+                        if [ "$cursor" -lt $((${#skill_names[@]} - 1)) ]; then
+                            cursor=$((cursor + 1))
+                        fi
+                        ;;
+                esac
+                ;;
+        esac
+    done
+
+    cleanup_terminal
+    trap - EXIT INT TERM
+}
+
+# List a skill's files relative to skills/, honoring .gitignore so private
+# material (samples/, local notes) never lands in an uploadable archive.
+list_skill_files() {
+    local skill=$1
+    git -C "$SKILLS_DIR" ls-files --cached --others --exclude-standard -- "$skill" \
+        | grep -v '/\.gitignore$' || true
+}
+
+zip_skill() {
+    local skill=$1
+    local zip_path="$OUT_DIR/$skill.zip"
+    local files
+
+    files=$(list_skill_files "$skill")
+    if [ -z "$files" ]; then
+        echo "  skip $skill (no committable files)" >&2
+        return 1
+    fi
+
+    rm -f "$zip_path"
+    if ! printf '%s\n' "$files" | (cd "$SKILLS_DIR" && zip -q "$zip_path" -@); then
+        echo "  fail $skill" >&2
+        return 1
+    fi
+
+    printf '  %-28s %s\n' "$skill" "$(du -h "$zip_path" | cut -f1)"
+}
+
+# --- main ---------------------------------------------------------------
+
+if ! command -v zip > /dev/null 2>&1; then
+    echo "Error: zip is not installed" >&2
+    exit 1
+fi
+
+if [ ! -d "$SKILLS_DIR" ]; then
+    echo "Error: skills directory not found at $SKILLS_DIR" >&2
+    exit 1
+fi
+
+discover_skills
+
+targets=()
+
+case "${1:-}" in
+    -h|--help)
+        usage
+        exit 0
+        ;;
+    -l|--list)
+        printf '%s\n' "${skill_names[@]}"
+        exit 0
+        ;;
+    --clean)
+        rm -rf "$DOTFILES_DIR/dist"
+        echo "Removed $DOTFILES_DIR/dist"
+        exit 0
+        ;;
+    -a|--all)
+        targets=("${skill_names[@]}")
+        ;;
+    -*)
+        echo "Error: unknown option $1" >&2
+        usage >&2
+        exit 1
+        ;;
+    '')
+        interactive_select
+        if [ "$selected_count" -eq 0 ]; then
+            echo "No skills selected" >&2
+            exit 0
+        fi
+        for ((i = 0; i < ${#skill_names[@]}; i++)); do
+            if [ "${selected_flags[i]}" -eq 1 ]; then
+                targets+=("${skill_names[i]}")
+            fi
+        done
+        ;;
+    *)
+        for name in "$@"; do
+            found=0
+            for known in "${skill_names[@]}"; do
+                if [ "$name" = "$known" ]; then
+                    found=1
+                    break
+                fi
+            done
+            if [ "$found" -eq 0 ]; then
+                echo "Error: unknown skill '$name'. Available:" >&2
+                printf '  %s\n' "${skill_names[@]}" >&2
+                exit 1
+            fi
+            targets+=("$name")
+        done
+        ;;
+esac
+
+mkdir -p "$OUT_DIR"
+
+echo "Zipping ${#targets[@]} skill(s) to $OUT_DIR"
+echo
+
+ok=0
+failed=0
+for skill in "${targets[@]}"; do
+    if zip_skill "$skill"; then
+        ok=$((ok + 1))
+    else
+        failed=$((failed + 1))
+    fi
+done
+
+echo
+echo "Done: $ok zipped, $failed skipped"

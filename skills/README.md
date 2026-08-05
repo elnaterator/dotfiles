@@ -42,3 +42,18 @@ To add a new skill:
 ## Using Skills
 
 Skills can be invoked by AI agents when they recognize relevant triggers or when explicitly called. Refer to individual skill documentation for usage details.
+
+## Packaging for Upload
+
+Clients that take skills as zip uploads (Claude Cowork, claude.ai, some editors) are served by the
+`zip-skills` script in `bin/`:
+
+```bash
+zip-skills          # interactive picker
+zip-skills --all    # zip every skill
+zip-skills <name>   # zip specific skill(s)
+```
+
+Archives land in `dist/skills/<name>.zip` (gitignored). File selection honors `.gitignore`, so
+private material such as `write-like-me/samples/` is never packaged. See the
+[root README](../README.md#skills-directory) for full options.

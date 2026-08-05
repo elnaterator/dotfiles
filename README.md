@@ -72,6 +72,7 @@ All scripts in `bin/` will be available in your PATH after setup. Key utilities:
 - **subnet-ips** - Analyze AWS subnet IP usage
 - **kms-keys** - List KMS keys with aliases
 - **git-summary** - Show recent git commits in a formatted table
+- **zip-skills** - Package skills into zips for upload to Claude Cowork/other editors
 - **mutate** - Text mutation utility
 - **ansi_colors** - ANSI color reference
 
@@ -149,6 +150,25 @@ npx skills remove <name> # uninstall
 
 To install community skills instead of local ones, use `npx skills find` or
 `npx skills add owner/repo`. See the [CLI docs](https://github.com/vercel-labs/skills).
+
+**Packaging skills for upload** — some clients (Claude Cowork, claude.ai, other editors) take a
+skill as a zip upload rather than a symlink. Use `zip-skills` to build those archives:
+
+```bash
+zip-skills                 # interactive picker (Up/Down, Space toggle, a = all, Enter)
+zip-skills --all           # zip every skill, no prompts
+zip-skills write-like-me   # zip specific skill(s) by name
+zip-skills --list          # list available skills
+zip-skills --clean         # delete the output directory
+```
+
+Each skill becomes its own `dist/skills/<name>.zip`, with the skill directory at the archive root
+(e.g. `write-like-me/SKILL.md`). `dist/` is gitignored.
+
+The file list comes from git, so anything ignored by `.gitignore` is left out of the archive —
+that keeps private material like `skills/write-like-me/samples/` from being uploaded. Per-skill
+`.gitignore` files are also stripped. Anything you want shipped must be tracked or at least not
+ignored.
 
 **Activating agents** (manual — no CLI for these yet):
 
