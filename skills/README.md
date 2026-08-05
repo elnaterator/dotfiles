@@ -49,11 +49,14 @@ Clients that take skills as zip uploads (Claude Cowork, claude.ai, some editors)
 `zip-skills` script in `bin/`:
 
 ```bash
+cd ~/.dotfiles
 zip-skills          # interactive picker
 zip-skills --all    # zip every skill
 zip-skills <name>   # zip specific skill(s)
 ```
 
-Archives land in `dist/skills/<name>.zip` (gitignored). File selection honors `.gitignore`, so
-private material such as `write-like-me/samples/` is never packaged. See the
-[root README](../README.md#skills-directory) for full options.
+Skills are read from `./skills/` in the current directory (override with `--skills-dir`, which
+accepts a repo root or a skills dir), and
+archives land in `~/skills/<name>.zip` (override with `--output`). Inside a git repo, file
+selection honors `.gitignore`, so private material such as `write-like-me/samples/` is never
+packaged. See the [root README](../README.md#skills-directory) for full options.

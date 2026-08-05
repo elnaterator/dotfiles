@@ -7,7 +7,7 @@ agents/config.local.toml
 # Backup directories created by setup script
 .backups/
 
-# Build output (zip-skills archives)
+# Build output (e.g. zip-skills --output dist)
 dist/
 
 # OS-specific files

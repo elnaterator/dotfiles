@@ -159,16 +159,36 @@ zip-skills                 # interactive picker (Up/Down, Space toggle, a = all,
 zip-skills --all           # zip every skill, no prompts
 zip-skills write-like-me   # zip specific skill(s) by name
 zip-skills --list          # list available skills
-zip-skills --clean         # delete the output directory
+zip-skills --clean         # delete the zips in the output directory
 ```
 
-Each skill becomes its own `dist/skills/<name>.zip`, with the skill directory at the archive root
-(e.g. `write-like-me/SKILL.md`). `dist/` is gitignored.
+Each skill becomes its own `<name>.zip`, with the skill directory at the archive root
+(e.g. `write-like-me/SKILL.md`).
 
-The file list comes from git, so anything ignored by `.gitignore` is left out of the archive —
-that keeps private material like `skills/write-like-me/samples/` from being uploaded. Per-skill
-`.gitignore` files are also stripped. Anything you want shipped must be tracked or at least not
-ignored.
+Paths:
+
+- **Skills** are read from the current directory — `./skills/` if it exists, otherwise the current
+  directory itself when it holds the skill folders. If neither matches, you are prompted for a
+  path. Override with `-s, --skills-dir PATH`.
+  A prompted path and `--skills-dir` are resolved the same way as the current directory, so either
+  a repo root (containing `skills/`) or a skills directory itself works.
+- **Zips** are written to `~/skills` by default. Override with `-o, --output PATH`.
+
+Since the script works off the current directory, it packages any skills collection, not just this
+repo's:
+
+```bash
+cd ~/.dotfiles && zip-skills --all              # this repo's skills
+zip-skills -s ~/other-project --all             # another repo (finds its skills/)
+zip-skills -s ~/other-project/skills --all      # or point straight at a skills dir
+zip-skills --all -o ~/Desktop/skill-uploads     # custom output
+```
+
+When the skills directory is inside a git repo, the file list comes from git, so anything ignored
+by `.gitignore` is left out of the archive — that keeps private material like
+`skills/write-like-me/samples/` from being uploaded, and per-skill `.gitignore` files are stripped
+too. Outside a git repo there are no ignore rules to apply, so every file is packaged and the
+script warns you to check the archives before uploading.
 
 **Activating agents** (manual — no CLI for these yet):
 

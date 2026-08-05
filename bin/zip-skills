@@ -1,24 +1,40 @@
 #!/usr/bin/env bash
 #
-# Package skills from this repo into zip archives for upload to Claude Code,
+# Package AI agent skills into zip archives for upload to Claude Code,
 # Claude Cowork, or other agent editors.
 #
-# One zip per skill, written to dist/skills/ (gitignored).
-# Files ignored by git (e.g. write-like-me/samples/) are excluded.
+# One zip per skill, written to ~/skills/<name>.zip by default.
+#
+# Skills are found in the current directory: either ./skills/, or the current
+# directory itself if it holds the skill folders. If neither matches you are
+# prompted for a path, which is resolved the same way — so a repo root or a
+# skills directory both work, here and for --skills-dir.
+#
+# When the skills directory is inside a git repo, the file list comes from git,
+# so anything ignored by .gitignore is left out of the archive (e.g. private
+# material under write-like-me/samples/).
 #
 # Usage:
-#   zip-skills                 Interactive picker (space to toggle, enter to zip)
-#   zip-skills --all           Zip every skill, no prompts
-#   zip-skills write-like-me   Zip named skill(s)
-#   zip-skills --list          List available skills
-#   zip-skills --clean         Remove the output directory
+#   zip-skills                    Interactive picker (space to toggle, enter to zip)
+#   zip-skills --all              Zip every skill, no prompts
+#   zip-skills write-like-me      Zip named skill(s)
+#   zip-skills --list             List available skills
+#   zip-skills --clean            Delete zips in the output directory
+#
+# Options:
+#   -s, --skills-dir PATH   Repo root or skills dir (default: ./skills or .)
+#   -o, --output PATH       Directory to write zips to (default: ~/skills)
+#   -a, --all               Select every skill
+#   -l, --list              Print skill names and exit
+#       --clean             Delete *.zip in the output directory and exit
+#   -h, --help              Show this help
 #
 
 set -euo pipefail
 
-DOTFILES_DIR=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)
-SKILLS_DIR="$DOTFILES_DIR/skills"
-OUT_DIR="$DOTFILES_DIR/dist/skills"
+SKILLS_DIR=""
+OUT_DIR="$HOME/skills"
+git_mode=0
 
 saved_stty=""
 cursor=0
@@ -39,7 +55,88 @@ cleanup_terminal() {
     tput cnorm 2>/dev/null || true
 }
 
-# A skill is any directory under skills/ containing a SKILL.md
+# True if the directory directly contains at least one */SKILL.md
+holds_skills() {
+    local dir=$1 candidate
+    [ -d "$dir" ] || return 1
+    for candidate in "$dir"/*/; do
+        [ -f "${candidate}SKILL.md" ] && return 0
+    done
+    return 1
+}
+
+# Given a base directory, echo the absolute path of the skills directory to use:
+# <base>/skills when that holds skill folders, else <base> itself. Returns 1 when
+# neither does. Used for the current directory, an entered path, and
+# --skills-dir alike, so any of them may name a repo root or a skills dir.
+find_skills_dir() {
+    local base=$1
+
+    if holds_skills "$base/skills"; then
+        (cd "$base/skills" && pwd)
+        return 0
+    fi
+    if holds_skills "$base"; then
+        (cd "$base" && pwd)
+        return 0
+    fi
+    return 1
+}
+
+not_found_msg() {
+    echo "No skills found in $1 (looked for skills/*/SKILL.md and */SKILL.md)."
+}
+
+# Resolve the skills directory: explicit --skills-dir, else the current
+# directory, else prompt the user.
+resolve_skills_dir() {
+    local resolved answer
+
+    if [ -n "$SKILLS_DIR" ]; then
+        if [ ! -d "$SKILLS_DIR" ]; then
+            echo "Error: not a directory: $SKILLS_DIR" >&2
+            exit 1
+        fi
+        if ! resolved=$(find_skills_dir "$SKILLS_DIR"); then
+            echo "Error: $(not_found_msg "$SKILLS_DIR")" >&2
+            exit 1
+        fi
+        SKILLS_DIR=$resolved
+        return
+    fi
+
+    if resolved=$(find_skills_dir "."); then
+        SKILLS_DIR=$resolved
+        return
+    fi
+
+    if [ ! -t 0 ]; then
+        echo "Error: $(not_found_msg "$(pwd)")" >&2
+        echo "Pass --skills-dir PATH when running non-interactively." >&2
+        exit 1
+    fi
+
+    not_found_msg "$(pwd)" >&2
+    read -r -e -p "Path to skills directory: " answer
+    answer=${answer/#\~/$HOME}
+
+    if [ -z "$answer" ]; then
+        echo "Error: no path given" >&2
+        exit 1
+    fi
+    if [ ! -d "$answer" ]; then
+        echo "Error: not a directory: $answer" >&2
+        exit 1
+    fi
+    if ! resolved=$(find_skills_dir "$answer"); then
+        echo "Error: $(not_found_msg "$answer")" >&2
+        exit 1
+    fi
+
+    SKILLS_DIR=$resolved
+}
+
+# A skill is any directory under the skills dir containing a SKILL.md
 discover_skills() {
     local dir
     for dir in "$SKILLS_DIR"/*/; do
@@ -58,7 +155,7 @@ draw_menu() {
     local total_lines visible_lines start end i prefix pointer
 
     total_lines=$(tput lines 2>/dev/null || echo 24)
-    visible_lines=$((total_lines - 7))
+    visible_lines=$((total_lines - 8))
     if [ "$visible_lines" -lt 5 ]; then
         visible_lines=5
     fi
@@ -76,6 +173,7 @@ draw_menu() {
     printf '\033[H\033[2J'
     echo "Select skills to zip"
     echo "Up/Down: move  Space: toggle  a: all  Enter: confirm  q: cancel"
+    echo "Source: $SKILLS_DIR"
     echo "Output: $OUT_DIR"
     echo "Selected: $selected_count"
     echo
@@ -123,6 +221,11 @@ select_all() {
 interactive_select() {
     local key
 
+    if [ ! -t 0 ]; then
+        echo "Error: no terminal for the picker. Use --all or name skills explicitly." >&2
+        exit 1
+    fi
+
     saved_stty=$(stty -g)
     trap cleanup_terminal EXIT INT TERM
     stty -echo -icanon time 0 min 1
@@ -169,12 +272,19 @@ interactive_select() {
     trap - EXIT INT TERM
 }
 
-# List a skill's files relative to skills/, honoring .gitignore so private
-# material (samples/, local notes) never lands in an uploadable archive.
+# List a skill's files relative to the skills dir. Inside a git repo, ask git so
+# that .gitignore'd files (samples/, local notes) never land in an uploadable
+# archive. Outside a repo, fall back to find.
 list_skill_files() {
     local skill=$1
-    git -C "$SKILLS_DIR" ls-files --cached --others --exclude-standard -- "$skill" \
-        | grep -v '/\.gitignore$' || true
+
+    if [ "$git_mode" -eq 1 ]; then
+        git -C "$SKILLS_DIR" ls-files --cached --others --exclude-standard -- "$skill" \
+            | grep -v '/\.gitignore$' || true
+    else
+        (cd "$SKILLS_DIR" && find "$skill" -type f \
+            ! -path '*/.git/*' ! -name '.gitignore' ! -name '.DS_Store' | sort)
+    fi
 }
 
 zip_skill() {
@@ -184,7 +294,7 @@ zip_skill() {
 
     files=$(list_skill_files "$skill")
     if [ -z "$files" ]; then
-        echo "  skip $skill (no committable files)" >&2
+        echo "  skip $skill (no packageable files)" >&2
         return 1
     fi
 
@@ -197,45 +307,120 @@ zip_skill() {
     printf '  %-28s %s\n' "$skill" "$(du -h "$zip_path" | cut -f1)"
 }
 
-# --- main ---------------------------------------------------------------
+# --- argument parsing ---------------------------------------------------------
+
+mode="pick"
+names=()
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -s|--skills-dir)
+            [ $# -ge 2 ] || { echo "Error: $1 requires a path" >&2; exit 1; }
+            SKILLS_DIR=${2/#\~/$HOME}
+            shift 2
+            ;;
+        -o|--output)
+            [ $# -ge 2 ] || { echo "Error: $1 requires a path" >&2; exit 1; }
+            OUT_DIR=${2/#\~/$HOME}
+            shift 2
+            ;;
+        -a|--all)
+            mode="all"
+            shift
+            ;;
+        -l|--list)
+            mode="list"
+            shift
+            ;;
+        --clean)
+            mode="clean"
+            shift
+            ;;
+        --)
+            shift
+            while [ $# -gt 0 ]; do
+                names+=("$1")
+                shift
+            done
+            ;;
+        -*)
+            echo "Error: unknown option $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            names+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ ${#names[@]} -gt 0 ]; then
+    if [ "$mode" = "all" ]; then
+        echo "Error: --all conflicts with named skills" >&2
+        exit 1
+    fi
+    mode="named"
+fi
+
+# --- main --------------------------------------------------------------------
+
+# Delete only the archives, never the directory: the output dir defaults to
+# ~/skills, which may hold skills the user actually cares about.
+if [ "$mode" = "clean" ]; then
+    if [ ! -d "$OUT_DIR" ]; then
+        echo "Nothing to clean: $OUT_DIR does not exist"
+        exit 0
+    fi
+    removed=$(find "$OUT_DIR" -maxdepth 1 -type f -name '*.zip' -print -delete | wc -l | tr -d ' ')
+    echo "Removed $removed zip(s) from $OUT_DIR"
+    exit 0
+fi
 
 if ! command -v zip > /dev/null 2>&1; then
     echo "Error: zip is not installed" >&2
     exit 1
 fi
 
-if [ ! -d "$SKILLS_DIR" ]; then
-    echo "Error: skills directory not found at $SKILLS_DIR" >&2
-    exit 1
-fi
-
+resolve_skills_dir
 discover_skills
+
+if git -C "$SKILLS_DIR" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    git_mode=1
+fi
 
 targets=()
 
-case "${1:-}" in
-    -h|--help)
-        usage
-        exit 0
-        ;;
-    -l|--list)
+case "$mode" in
+    list)
         printf '%s\n' "${skill_names[@]}"
         exit 0
         ;;
-    --clean)
-        rm -rf "$DOTFILES_DIR/dist"
-        echo "Removed $DOTFILES_DIR/dist"
-        exit 0
-        ;;
-    -a|--all)
+    all)
         targets=("${skill_names[@]}")
         ;;
-    -*)
-        echo "Error: unknown option $1" >&2
-        usage >&2
-        exit 1
+    named)
+        for name in "${names[@]}"; do
+            found=0
+            for known in "${skill_names[@]}"; do
+                if [ "$name" = "$known" ]; then
+                    found=1
+                    break
+                fi
+            done
+            if [ "$found" -eq 0 ]; then
+                echo "Error: unknown skill '$name' in $SKILLS_DIR. Available:" >&2
+                printf '  %s\n' "${skill_names[@]}" >&2
+                exit 1
+            fi
+            targets+=("$name")
+        done
         ;;
-    '')
+    pick)
         interactive_select
         if [ "$selected_count" -eq 0 ]; then
             echo "No skills selected" >&2
@@ -247,28 +432,18 @@ case "${1:-}" in
             fi
         done
         ;;
-    *)
-        for name in "$@"; do
-            found=0
-            for known in "${skill_names[@]}"; do
-                if [ "$name" = "$known" ]; then
-                    found=1
-                    break
-                fi
-            done
-            if [ "$found" -eq 0 ]; then
-                echo "Error: unknown skill '$name'. Available:" >&2
-                printf '  %s\n' "${skill_names[@]}" >&2
-                exit 1
-            fi
-            targets+=("$name")
-        done
-        ;;
 esac
 
 mkdir -p "$OUT_DIR"
 
-echo "Zipping ${#targets[@]} skill(s) to $OUT_DIR"
+echo "Zipping ${#targets[@]} skill(s)"
+echo "  from $SKILLS_DIR"
+echo "  to   $OUT_DIR"
+if [ "$git_mode" -eq 0 ]; then
+    echo
+    echo "Note: $SKILLS_DIR is not a git repo, so .gitignore rules cannot be applied." >&2
+    echo "      Every file is packaged. Check the archives before uploading them." >&2
+fi
 echo
 
 ok=0
