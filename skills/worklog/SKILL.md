@@ -9,7 +9,8 @@ description: |
   - Produce the weekly summary / email of accomplishments ("worklog summary", "write my weekly update",
     "what did I get done this week")
   Notes are impact-first (value/outcome over task lists), one Markdown file per ISO week under
-  ~/worklog/. The weekly email is drafted in the user's voice via the write-like-me skill.
+  $WORKLOG_DIR (default ~/worklog/). The weekly email is drafted in the user's voice via the
+  write-like-me skill.
 ---
 
 # Worklog
@@ -19,18 +20,29 @@ email at week's end. The store is the source of truth; every entry lives in a da
 
 ## Storage layout
 
+The worklog root is `$WORKLOG_DIR`, defaulting to `~/worklog` when the variable is unset or empty.
+
 ```
-~/worklog/
+$WORKLOG_DIR/                   default: ~/worklog/
   <ISO-year>-W<ISO-week>.md     e.g. 2026-W31.md   (one file per week; days are headers inside)
 ```
 
-Compute the path with the shell — never guess:
-- This week's file: `FILE=~/worklog/$(date +%G-W%V).md; echo $FILE`
+Compute the path with the shell — never guess, and never hardcode `~/worklog`:
+- Root: `WORKLOG_DIR="${WORKLOG_DIR:-$HOME/worklog}"; echo "$WORKLOG_DIR"`
+- This week's file: `FILE="${WORKLOG_DIR:-$HOME/worklog}/$(date +%G-W%V).md"; echo "$FILE"`
 - Today's day header: `date +"%Y-%m-%d (%a)"` → `2026-07-30 (Thu)`
 - macOS `date` supports `%G` (ISO year) and `%V` (ISO week). Monday starts the week.
 
-Create `~/worklog/` with `mkdir -p` before writing. The tree is outside this repo — it is personal
-data, never commit it here.
+Notes on `$WORKLOG_DIR`:
+- Always quote it — the path may contain spaces (e.g. an iCloud or OneDrive folder).
+- `~` inside the value is not expanded by the shell when it comes from a variable. If the value
+  starts with `~/`, expand it yourself: `WORKLOG_DIR="${WORKLOG_DIR/#\~/$HOME}"`.
+- The user sets it in their shell config, e.g. `export WORKLOG_DIR="$HOME/Documents/worklog"`.
+- If the variable points somewhere that doesn't exist, create it (`mkdir -p`) rather than falling
+  back to the default — silently writing elsewhere loses entries.
+
+Create the root with `mkdir -p "$WORKLOG_DIR"` before writing. The tree is outside this repo — it is
+personal data, never commit it here.
 
 ## What makes a good entry
 
@@ -72,7 +84,7 @@ it adds noise.
 
 Trigger: user asks to log/add/note something, or an AI session is wrapping up.
 
-1. **Resolve this week's file** with the `date` command above; `mkdir -p ~/worklog`.
+1. **Resolve this week's file** with the `date` command above; `mkdir -p "${WORKLOG_DIR:-$HOME/worklog}"`.
 2. **Distill the accomplishment to impact.** If the user hands you a raw task, reframe it around value
    and outcome before writing. Drop it entirely if it's low-signal (tell them you skipped it and why).
 3. **Append**, don't overwrite. If the file is new, add the `# Worklog — <ISO-week>` title. If today's
@@ -91,16 +103,19 @@ impact-framed bullets and ask before writing (don't log churn or exploration tha
 Trigger: "worklog summary", "weekly update", "what did I do this week", end of week.
 
 1. **Gather the week.** Default to the current week file; honor an explicit week if asked.
-   `cat ~/worklog/$(date +%G-W%V).md` (or the requested week). If missing/empty, say so and offer to
-   backfill from recent sessions.
+   `cat "${WORKLOG_DIR:-$HOME/worklog}/$(date +%G-W%V).md"` (or the requested week). If
+   missing/empty, say so and offer to backfill from recent sessions.
 2. **Synthesize, don't transcribe.** Merge related bullets, group by theme/project (`[area]` tags
    help), lead with the highest-impact items. Cut anything low-value that slipped in. Aim for a
    tight email — a handful of themed highlights, not a daily replay.
-3. **Draft in the user's voice.** Invoke the **write-like-me** skill to write the email so it sounds
-   like the user. Pass it the synthesized highlights as the content and "weekly accomplishments email"
-   as the ask. If write-like-me's profile is unbuilt, fall back to a clean, plain professional summary
-   and note that.
-4. **Return the email** as an editable block (subject + body). Offer to also save it, but don't send
+3. **Fill the template.** Read `templates/weekly-email.md` (next to this SKILL.md) and map the
+   synthesized themes onto it. The template is the structure, not the wording — drop sections that
+   have no content rather than padding them.
+4. **Draft in the user's voice.** Invoke the **write-like-me** skill to write the email so it sounds
+   like the user. Pass it the filled template as the content and "weekly accomplishments email" as
+   the ask. Voice wins over the template's phrasing; the section order is the part to preserve. If
+   write-like-me's profile is unbuilt, fall back to a clean, plain professional summary and note that.
+5. **Return the email** as an editable block (subject + body). Offer to also save it, but don't send
    anything — the user sends it themselves.
 
 ## Notes
