@@ -151,6 +151,9 @@ npx skills remove <name> # uninstall
 To install community skills instead of local ones, use `npx skills find` or
 `npx skills add owner/repo`. See the [CLI docs](https://github.com/vercel-labs/skills).
 
+**Environment variables for skills** — Claude Code doesn't load shell rc files, so set env vars
+(e.g., `WORKLOG_DIR` for the worklog skill) in `~/.claude/settings.json` under `"env": {...}`.
+
 **Packaging skills for upload** — some clients (Claude Cowork, claude.ai, other editors) take a
 skill as a zip upload rather than a symlink. Use `zip-skills` to build those archives:
 
