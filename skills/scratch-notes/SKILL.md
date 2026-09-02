@@ -1,60 +1,35 @@
 ---
 name: scratch-notes
 description: |
-  Appends quick, concise scratch notes to one centralized notes file. Use this skill when the
-  user asks to:
+  Appends quick, terse scratch notes to one centralized notes file. Use when the user asks to:
   - Jot / scratch / note something down ("jot this down", "scratch note", "note to self",
     "add to my notes", "take a note", "save this thought")
   - Capture a quick idea, reminder, command, link, or finding for later
   - Dump short context from the current session into their notes
-  Notes are terse bullet points appended to $SCRATCH_NOTES_FILE (default ~/notes.md), each new
-  entry separated by `---`. Not for accomplishments/impact tracking — that's the worklog skill.
+  Notes go to $SCRATCH_NOTES_FILE (default ~/notes.md), entries separated by `---`.
+  Not for accomplishments/impact tracking — that's the worklog skill.
 ---
 
 # Scratch Notes
 
-Fast capture to one flat file. Append-only, newest at the bottom, every entry separated by `---`.
-No organizing, no rewriting old entries, no ceremony.
+Append-only flat file. Newest at bottom. No organizing, no rewriting old entries.
 
-## Storage
+## Add a note
 
-The notes file is `$SCRATCH_NOTES_FILE`, defaulting to `~/notes.md` when unset or empty.
+1. **Distill** into 1–5 terse bullets. Confirm nothing — just capture. Vague ask ("note this")
+   = note preceding subject.
+2. **Append** via script — it resolves `$SCRATCH_NOTES_FILE`, expands `~`, does `mkdir -p`, and
+   writes the `---` separator (skipped when file new/empty). Empty-string arg = blank line:
 
-Resolve the path with the shell — never guess, never hardcode `~/notes.md`:
+   ```bash
+   ~/.dotfiles/skills/scratch-notes/scripts/append-note.sh "**$(date +%F)** topic" "" "- point one" "- point two"
+   ```
 
-```bash
-FILE="${SCRATCH_NOTES_FILE:-$HOME/notes.md}"; FILE="${FILE/#\~/$HOME}"; echo "$FILE"
-```
+   Multi-line via stdin also works: `printf '%s\n' ... | append-note.sh`.
+   Always use the script — direct file writes miss the path resolution and separator logic.
+3. **Confirm** one line: what noted + file path.
 
-Notes on `$SCRATCH_NOTES_FILE`:
-- Always quote it — the path may contain spaces.
-- `~` in the value is not shell-expanded when read from a variable; expand it yourself as above.
-- The user sets it in their shell config, e.g. `export SCRATCH_NOTES_FILE="$HOME/Documents/notes.md"`.
-- If the parent directory doesn't exist, create it (`mkdir -p`) rather than falling back to the
-  default — silently writing elsewhere loses notes.
-
-The file is personal data outside this repo — never commit it here.
-
-## Note style
-
-Concise. Bullet points. Caveman compression when a caveman mode is active (drop articles/filler,
-fragments fine) — but keep all technical substance exact: commands, paths, URLs, error strings,
-names, numbers verbatim.
-
-- ✅ `- fix flaky auth test: mock clock, not sleep`
-- ✅ `- subnet-ips slow on big VPCs — cache describe-network-interfaces?`
-- ❌ A paragraph restating the whole conversation.
-- ❌ Headers, tables, nested outlines — this is a scratch pad, not a doc.
-
-Rules:
-- 1–5 bullets per entry. Distill; don't transcribe.
-- Optional one-line `**topic**` bold lead if the bullets need context.
-- Start each entry with the date: `**YYYY-MM-DD**` (get it via `date +%F`).
-- Preserve code/commands/URLs exactly, in backticks.
-
-## Entry format
-
-Each append produces:
+Resulting entry:
 
 ```markdown
 ---
@@ -65,32 +40,49 @@ Each append produces:
 - second point
 ```
 
-The `---` separator goes *before* the new entry (the script handles this — it skips the separator
-when the file is new/empty).
+## Style
 
-## Workflow: adding a note
+Terse bullets. Caveman compression when a caveman mode active. Technical substance exact —
+commands, paths, URLs, error strings, names, numbers verbatim, in backticks.
 
-1. **Distill** what the user gave you into 1–5 terse bullets (style above). Confirm nothing — just
-   capture. If the ask is vague ("note this"), note the immediately preceding subject.
-2. **Append** — prefer the helper script (handles path resolution, separator, mkdir):
+- ✅ `- fix flaky auth test: mock clock, not sleep`
+- ✅ `- subnet-ips slow on big VPCs — cache describe-network-interfaces?`
+- ❌ Paragraph restating conversation.
+- ❌ Headers, tables, nested outlines — scratch pad, not doc.
 
-   ```bash
-   ~/.dotfiles/skills/scratch-notes/scripts/append-note.sh "**$(date +%F)** topic" "- point one" "- point two"
-   ```
+Bold `**topic**` lead optional, only if bullets need context. Date line always `**YYYY-MM-DD**`.
 
-   Or pipe multi-line content via stdin:
+## Read back
 
-   ```bash
-   printf '%s\n' "**$(date +%F)** topic" "" "- point one" "- point two" | ~/.dotfiles/skills/scratch-notes/scripts/append-note.sh
-   ```
+"What's in my notes" / "find note about X" → `cat`/grep resolved path:
 
-   Use the script whenever direct file-write tools can't reach the notes file (outside allowed
-   write paths, sandboxed session, etc.). If you *do* have direct write access, appending with the
-   file-edit tool is fine — replicate the same format: leading `---` separator (unless file is
-   new/empty), blank lines around it, dated entry.
-3. **Confirm** in one line: what was noted and the file path.
+```bash
+FILE="${SCRATCH_NOTES_FILE:-$HOME/notes.md}"; FILE="${FILE/#\~/$HOME}"; grep -n "X" "$FILE"
+```
 
-## Workflow: reading notes back
+Read-only. Never rewrite or reorganize past entries unless explicitly asked.
 
-If asked "what's in my notes" / "find that note about X": `cat`/grep the resolved file. Read-only —
-never rewrite or reorganize past entries unless explicitly asked.
+## Sandbox blocks write
+
+Append fails `/path/to/notes.md: Operation not permitted` when notes file outside sandbox
+allowlist. Do **not** retry, fall back to `~/notes.md`, or write elsewhere — loses notes silently.
+
+Tell user to add notes file's **parent directory** (not the file — append rewrites it, needs
+directory write) to `sandbox.filesystem.allowWrite` in `~/.claude/settings.json`, snippet filled
+with their resolved path:
+
+```json
+{
+  "sandbox": {
+    "filesystem": {
+      "allowWrite": ["/Users/you/path/to/notes-dir"]
+    }
+  }
+}
+```
+
+Merge into existing `sandbox` block, don't replace. `~` and `./output` paths OK. New session to
+take effect. Then offer re-append. If they decline settings change, hand them the one-line
+`append-note.sh` command for their own terminal.
+
+Notes file is personal data outside this repo — never commit it here.
