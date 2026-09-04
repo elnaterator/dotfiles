@@ -2,10 +2,6 @@
 # Enable or disable individual skills by setting enabled = true/false
 # When a skill is disabled, setup.sh will remove its symlink from ~/.claude/skills/
 
-[git-helper]
-enabled = true
-description = "Git workflow assistant for commits, branches, and PRs"
-
 [write-like-me]
 enabled = true
 description = "Drafts and edits prose in your personal writing voice"
@@ -17,3 +13,7 @@ description = "Captures weekly accomplishments and produces an impact-focused su
 [project-bootstrapper]
 enabled = true
 description = "Scaffolds/upgrades projects to standard layout (docs, Makefiles, optional Terraform infra)"
+
+[jira]
+enabled = true
+description = "Day-to-day Jira via the jira CLI, non-interactive (list, view, create, edit, move, comment)"
