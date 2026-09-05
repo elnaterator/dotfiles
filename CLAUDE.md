@@ -18,20 +18,25 @@ The repository uses a symlink-based approach where configuration files in the re
 ./setup.sh
 ```
 
-The setup script does exactly two things:
-- Creates a `~/.dotfiles` symlink pointing at the repository
-- Appends `dotfiles/.zshrc.local` to `~/.zshrc` and `dotfiles/.bashrc.local` to `~/.bashrc`
+The setup script checks and repairs exactly two things, reporting each as `ok`, `fixed`, or
+`skipped`:
+- `~/.dotfiles` symlink pointing at the repository
+- `~/.zshrc` and `~/.bashrc` containing a line that sources `dotfiles/.zshrc` / `dotfiles/.bashrc`
+  (created from `dotfiles/.zshrc.local` / `dotfiles/.bashrc.local` if missing; the snippet is
+  appended once if the file exists without the line, never duplicated)
 
-Those appended snippets each `source` the real config in `dotfiles/` (`.zshrc` / `.bashrc`),
-which is what adds `bin/` to PATH and loads everything else.
+Those snippets each `source` the real config in `dotfiles/` (`.zshrc` / `.bashrc`), which is what
+adds `bin/` to PATH and loads everything else.
 
-**It does NOT** symlink shell configs directly, create `.backups/`, generate `~/.zshrc.local`
-from a template, or install skills/agents. Those are either handled by the sourced configs or
-done manually (see below).
+**setup.sh is idempotent** and safe to re-run. Anything that already exists and differs (a real
+file or directory at `~/.dotfiles`, a symlink elsewhere, an rc file without the source line) is
+only touched after a `[y/N]` prompt, and replaced files are moved to `.backups/<timestamp>/` in
+the repo (gitignored) first. Flags: `--dry-run` / `-n` reports without changing anything,
+`--yes` / `-y` answers yes to every prompt, `--help`. With stdin at EOF every prompt answers no.
 
-**setup.sh is not idempotent** - it appends unconditionally and exits early only if `~/.dotfiles`
-already exists or the rc files already contain `NateHadz`. Re-running after a partial setup can
-duplicate lines.
+**It does NOT** symlink shell configs directly, generate `~/.zshrc.local` from a template, or
+install skills/agents. Those are either handled by the sourced configs or done manually (see
+below).
 
 ## Repository Structure
 
@@ -57,7 +62,7 @@ The repo itself is symlinked to `~/.dotfiles`, and the real rc files `source` co
 - **Benefit**: Changes to configs in the repo are immediately active (they're sourced live)
 - **Workflow**: Edit `dotfiles/.zshrc` → changes apply on next `source ~/.zshrc` or new shell
 - **Mechanism**: `setup.sh` appends `source ~/.dotfiles/dotfiles/.zshrc` (via `.zshrc.local`) to `~/.zshrc`
-- **No backups**: `setup.sh` does not back up existing files; it appends and relies on the early-exit guard
+- **Backups**: anything `setup.sh` replaces is moved to `.backups/<timestamp>/` first (only after confirmation)
 
 ### Machine-Specific Customization Pattern
 
@@ -171,9 +176,11 @@ script-name [args]
 
 **Setup script:**
 ```bash
-# Test setup in dry-run mode would require adding --dry-run flag
-# For now, test in a VM or backup your configs first
-./setup.sh
+# Report without changing anything
+./setup.sh --dry-run
+
+# Exercise it against a throwaway home directory
+HOME=/tmp/fake-home ./setup.sh --yes
 ```
 
 ### Adding New Configuration Files

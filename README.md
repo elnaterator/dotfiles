@@ -12,13 +12,23 @@ cd ~/workspace/dotfiles
 ./setup.sh
 ```
 
-The setup script will:
-- Create a `~/.dotfiles` symlink pointing at this repository
-- Append `dotfiles/.zshrc.local` to `~/.zshrc` and `dotfiles/.bashrc.local` to `~/.bashrc`
+The setup script checks and repairs two things, and is safe to re-run at any time:
+- A `~/.dotfiles` symlink pointing at this repository
+- `~/.zshrc` and `~/.bashrc` sourcing `dotfiles/.zshrc` / `dotfiles/.bashrc` (via the
+  `dotfiles/.zshrc.local` and `dotfiles/.bashrc.local` snippets; created if missing, appended
+  once if present without the line)
 
-That's all it does. Shell config, PATH, skills, and agents are wired up by those appended
-snippets and by manual symlinks — see the sections below. `setup.sh` does **not** symlink
-shell configs, create backups, or install skills/agents.
+Each item is reported as `ok`, `fixed`, or `skipped`. Anything that already exists and differs is
+only replaced after a `[y/N]` prompt, and replaced files are moved to `.backups/<timestamp>/`
+first.
+
+```bash
+./setup.sh --dry-run   # report only, change nothing
+./setup.sh --yes       # answer yes to every prompt
+```
+
+That's all it does. Shell config and PATH are wired up by those snippets; skills and agents are
+installed manually — see the sections below.
 
 ## Repository Structure
 
