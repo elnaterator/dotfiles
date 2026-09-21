@@ -195,6 +195,40 @@ jira epic add PROJ-100 "$key"
 # 3. Sprint, if the user asked for one (jira issue create has no sprint flag either)
 jira sprint add "$(jira sprint list --state active --table --plain --no-headers --columns id \
   | head -1)" "$key"
+# 4. Story points, if the user gave them. NOT `jira issue edit --custom` — that silently
+#    no-ops on Data Center (see Gotchas). Use the REST wrapper, which verifies after writing.
+bash ~/.claude/skills/jira/scripts/set-story-points.sh "$key" 3
+```
+
+### Story points (and other numeric custom fields)
+
+`jira issue edit --custom "Story Points=N"` does not work on Jira Data Center — it exits 0 and
+prints the issue URL while the field stays unchanged. Always go through the script:
+
+```bash
+bash ~/.claude/skills/jira/scripts/set-story-points.sh PROJ-123 3      # set, then verify
+bash ~/.claude/skills/jira/scripts/set-story-points.sh PROJ-123        # read current value
+```
+
+Default field name is `Story Points`. Override with `JIRA_STORY_POINTS_FIELD` (Claude Code
+`env` in `~/.claude/settings.json`) or `--field NAME` for a one-off. The field id is resolved
+from `issue.fields.custom` in the jira-cli config (the id varies per server — do not hardcode
+one). The script does the REST `PUT`, then re-reads the field and exits non-zero if the
+value did not land. Output is one line, e.g.
+`PROJ-123 Story Points (customfield_<id>) = 3.0 — verified`.
+If the field is missing from the config, the script prints how to declare it and lists the
+custom fields already present — do not invent an id.
+
+**Do not build the curl call yourself.** The script reads `JIRA_API_TOKEN` from the environment
+and writes it to a mode-600 curl config file; the token never appears in a command line, in
+output, or in this conversation. Never ask the user for the token and never put it in a command.
+
+Same sandbox caveat as `my-issues.sh`: a `tls: failed to verify certificate: x509` or a
+connection error means the wrapper is not in `sandbox.excludedCommands` in
+`~/.claude/settings.json`. Ask the user to add:
+
+```json
+"bash /Users/<you>/.claude/skills/jira/scripts/set-story-points.sh*"
 ```
 
 ### Other writes
@@ -253,6 +287,14 @@ jira issue watch PROJ-123 "$(jira me)"
 - `--project` on `jira init` is the default project key. `-p` on other commands overrides it.
 - Custom fields go through `--custom name=value`; the field must be declared in the config
   under `issue.fields.custom`. Check the config before using one.
+- **`jira issue edit --custom "Story Points=N"` silently no-ops on Jira Data Center.** It exits
+  0 and prints the issue URL, but the field is unchanged. Variants like `"story points"` and
+  `"storypoints"` are accepted and ignored the same way; only `"story-points"` errors out, so
+  a clean exit proves nothing. Use `scripts/set-story-points.sh` (see Write → Story points):
+  it resolves the field id from `issue.fields.custom` in `~/.config/.jira/.config.yml`, does
+  a REST `PUT`, and verifies by re-reading. Do not hardcode a `customfield_*` id. **Always
+  verify after setting** — for any numeric custom field, assume `--custom` may be a no-op
+  until a re-read says otherwise.
 - **`jira issue list --raw` drops every `customfield_*`.** Epic link and sprint are custom
   fields, so anything needing them must go through `jira issue view KEY --raw` per issue.
 - `jira issue create` has no epic flag and no sprint flag. Both are follow-up commands

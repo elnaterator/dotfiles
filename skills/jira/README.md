@@ -11,6 +11,11 @@ developer uses daily.
   none). It defaults to your **active sprints only**; pass `--all` for the backlog and closed
   sprints. The skill uses it for any "my issues" / "what's on my plate" request so the answer
   always has the same shape.
+- **Story points:** `scripts/set-story-points.sh KEY N` sets **Story Points** over the REST
+  API and verifies the write, because `jira issue edit --custom "Story Points=N"` silently
+  no-ops on Jira Data Center. The field id is resolved by name from the jira-cli config
+  (`JIRA_STORY_POINTS_FIELD` overrides the name). The script reads `JIRA_API_TOKEN` itself so
+  the token never reaches a command line or a transcript.
 - **Read:** my issues, current/prev/next sprint, free-text and JQL search, single issue with
   comments, epics, raw JSON for `jq`.
 - **Write:** create, edit, transition, assign, comment, link, add to epic and sprint, log work,
@@ -48,7 +53,10 @@ Every command in the skill carries the flags that make `jira` non-interactive (`
    ```
 
    `JIRA_AUTH_TYPE=bearer` is for Data Center / Server Personal Access Tokens. Omit it for
-   Atlassian Cloud API tokens (basic auth). Start a new Claude Code session after editing.
+   Atlassian Cloud API tokens (basic auth). If this site does not call the estimate field
+   `Story Points`, add `JIRA_STORY_POINTS_FIELD` with the exact name from Jira (and declare
+   that field under `issue.fields.custom` in the jira-cli config). Start a new Claude Code
+   session after editing.
 
 ## Install the skill
 
