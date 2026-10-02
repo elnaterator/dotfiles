@@ -10,9 +10,10 @@ summary email at the end of the week — drafted in your voice.
   `~/worklog/`), with each day as a section inside.
 - **Keeps notes impact-first** — value and outcome over exhaustive task lists; low-signal work
   is skipped.
-- **Generates a weekly email** from [`templates/weekly-email.md`](templates/weekly-email.md) that
-  synthesizes and themes the week's entries, written in your voice via the
-  [`write-like-me`](../write-like-me) skill.
+- **Generates a weekly email** from [`templates/weekly-email.md`](templates/weekly-email.md) for a
+  **manager or director**: related log bullets collapse into 1–2 impact lines per project,
+  implementation detail stays in the log, written in your voice via
+  [`write-like-me`](../write-like-me).
 
 ## Usage
 
@@ -44,10 +45,11 @@ Wherever it points, this is personal data living outside the dotfiles repo — n
 
 ## Weekly email template
 
-[`templates/weekly-email.md`](templates/weekly-email.md) defines the summary email's structure —
-subject line, framing sentence, themed highlights, in-flight work, blockers, next week — plus
-variants for a manager update, a wide audience, and a multi-week roll-up. It's the skeleton; the
-wording comes from `write-like-me`. Edit the template to change the shape of your weekly email.
+[`templates/weekly-email.md`](templates/weekly-email.md) is the skeleton for that manager-facing
+email (headline, 1–2 bullets per project, in-flight / blockers / next week only when useful). Daily
+log notes (honest reads, scoring) inform the draft but are not copied in. Wording comes from
+`write-like-me` using the leadership register, with jargon stripped. Edit the template to change
+the shape.
 
 ## Installation
 

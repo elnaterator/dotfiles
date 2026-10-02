@@ -9,14 +9,16 @@ description: |
   - Produce the weekly summary / email of accomplishments ("worklog summary", "write my weekly update",
     "what did I get done this week")
   Notes are impact-first (value/outcome over task lists), one Markdown file per ISO week under
-  $WORKLOG_DIR (default ~/worklog/). The weekly email is drafted in the user's voice via the
-  write-like-me skill.
+  $WORKLOG_DIR (default ~/worklog/). The weekly email is a manager/director status update: translated
+  out of engineer-log detail, consolidated per project, drafted in the user's voice via write-like-me.
 ---
 
 # Worklog
 
-Capture the week's accomplishments as they happen, then synthesize a concise, impact-focused summary
-email at week's end. The store is the source of truth; every entry lives in a dated Markdown file.
+Capture the week's accomplishments as they happen, then synthesize a concise manager/director
+status email at week's end. The store is the source of truth; every entry lives in a dated Markdown
+file. Daily bullets may stay technical; the email is a translation for someone who is not intimate
+with the implementation.
 
 ## Storage layout
 
@@ -102,25 +104,70 @@ impact-framed bullets and ask before writing (don't log churn or exploration tha
 
 Trigger: "worklog summary", "weekly update", "what did I do this week", end of week.
 
+**Audience is always a manager or director.** They know the products and teams at a high level
+(CW2SNOW, MWatch, Harness, which org owns support). They are not intimate with the implementation.
+If they would need a PR, wiki page, or error code to understand a sentence, cut it. Do not produce
+a technical recap unless the user explicitly asks for one.
+
+Daily log bullets stay technical — that is for the user. The email is a **translation**, not a
+shortened copy of those bullets.
+
 1. **Gather the week.** Default to the current week file; honor an explicit week if asked.
    `cat "${WORKLOG_DIR:-$HOME/worklog}/$(date +%G-W%V).md"` (or the requested week). If
    missing/empty, say so and offer to backfill from recent sessions.
-2. **Synthesize, don't transcribe.** Merge related bullets, group by theme/project (`[area]` tags
-   help), lead with the highest-impact items. Cut anything low-value that slipped in. Aim for a
-   tight email — a handful of themed highlights, not a daily replay.
+   Read the **whole file**: day bullets *and* any extra notes (honest reads, goal scoring, patterns,
+   "where we are" asides). Use those notes as background so the draft is accurate. **Do not paste
+   them into the email** — no self-critique, Rock slips, evidence holes, or vault wiki links.
+2. **Translate, then consolidate.** Group by `[area]` / project. Related work is the same app
+   **and** the same kind of result (handoff, reliability, security, shipping, unblocking a team).
+   For each group write **one impact statement**; a **second bullet only** if the outcomes are
+   genuinely different (e.g. "support now sits with Cloud Engineering" vs "scanner in CI can
+   actually authenticate"). Aim for **1–2 tight bullets per project**, **2–4 projects** total.
+   Lead with the highest-impact theme. Cut low-value items that slipped into the log.
 3. **Fill the template.** Read `templates/weekly-email.md` (next to this SKILL.md) and map the
    synthesized themes onto it. The template is the structure, not the wording — drop sections that
    have no content rather than padding them.
-4. **Draft in the user's voice.** Invoke the **write-like-me** skill to write the email so it sounds
-   like the user. Pass it the filled template as the content and "weekly accomplishments email" as
-   the ask. Voice wins over the template's phrasing; the section order is the part to preserve. If
+4. **Draft in the user's voice.** Invoke the **write-like-me** skill. Pass: the filled template as
+   content; ask = **weekly status email to manager/director**; register = **Email — leadership /
+   wide / directors**. Tell it to keep warmth and diplomacy but **strip implementation jargon**
+   even if the profile is comfortable with domain terms. Voice wins over the template's phrasing;
+   audience and consolidation win over the profile's "technically precise" habit. If
    write-like-me's profile is unbuilt, fall back to a clean, plain professional summary and note that.
 5. **Return the email** as an editable block (subject + body). Offer to also save it, but don't send
    anything — the user sends it themselves.
 
+### Translation rules (email only)
+
+Answer, in the reader's vocabulary: **what landed**, **who it helps or what changed in operations**.
+Add **where we are** (done, waiting on X, design only) **only when that is not obvious** from the
+outcome. "Shipped to prod" does not need a status clause. "Wrote the design; implementation has not
+started" does.
+
+**Drop by default:** PR numbers, ticket keys, CLI flags, error codes, file/stage/template names,
+commit mechanics, roadmap item IDs, wiki `[[links]]`. Keep a ticket or name only if the reader
+already tracks that item (a handoff they asked about, a team they know). Keep product names; gloss
+once if needed ("CW2SNOW (CloudWatch alerts into ServiceNow)").
+
+**Human cadence, not an impact formula.** Short sentences, one idea each. Lead with the outcome,
+not the work. Use I / we / they and ordinary time ("this week", "next week"). Do not stack
+"accomplishment — mechanism — unblocks Y — de-risking Z." Avoid machine tells: *unblocks*,
+*de-risking*, *closes the last operational dependency*, *minimum standard*, *false-green*,
+*merge gate*.
+
+❌ "Finished the ownership handoff end to end: updated every DL and ownership record (FEDP-308).
+Closes the last operational dependency on Goal 5's minimum standard, so an alert at 2am reaches
+their rota rather than Nathan's."
+✅ "Finished the CW2SNOW support handoff. Overnight alerts now go to FSD Cloud Engineering's rota,
+not to me."
+
+❌ Five bullets: tflint installer, tofu cache, Checkmarx creds, pipeline restore, memory ceiling.
+✅ "Kept the CW2SNOW pipeline honest this week — builds stay red when a scanner can't run, and we
+fixed the breakage that was taking CI down."
+
 ## Notes
 
-- The daily notes are terse by nature; the **summary email is normal prose** (via write-like-me) — it
-  is exempt from any compressed/terse output mode.
-- Never invent accomplishments. If the week's files are thin, the summary is thin — offer to backfill,
-  don't pad.
+- Daily entries can stay technical and long; the **summary email is normal prose** for a manager
+  (via write-like-me) — it is exempt from any compressed/terse output mode.
+- Never invent accomplishments. Extra notes in the week file may sharpen wording or "where we
+  are"; they are not a license to add work that isn't in the bullets. Thin week → short email;
+  offer to backfill, don't pad.
