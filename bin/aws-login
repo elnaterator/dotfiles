@@ -116,6 +116,13 @@ fi
 echo "Logging in with okta-aws-cli..."
 echo ""
 
+# okta-aws-cli 2.x (AWS SDK Go v1) sends AssumeRoleWithSAML to the global STS
+# endpoint unless both of these are set. Global STS returns a v1 session token,
+# which opt-in regions reject. The regional endpoint returns a v2 token.
+# --aws-region alone still hits the global endpoint, so set these on every login.
+export AWS_STS_REGIONAL_ENDPOINTS=regional
+export OKTA_AWSCLI_AWS_REGION="${OKTA_AWSCLI_AWS_REGION:-us-east-1}"
+
 # Run okta-aws-cli web command with credentials file output
 # The tool will output to AWS credentials file and print status to stderr
 okta-aws-cli web \
