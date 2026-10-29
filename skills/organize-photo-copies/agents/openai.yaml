@@ -1,0 +1,4 @@
+interface:
+  display_name: "Organize Photo Copies"
+  short_description: "Guided photo organization with verified copies"
+  default_prompt: "Use $organize-photo-copies to guide me through organizing my shoot into verified copies while keeping originals untouched."
